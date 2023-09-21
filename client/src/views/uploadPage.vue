@@ -113,8 +113,7 @@
 import Cropper from 'vue-cropperjs';
 import 'cropperjs/dist/cropper.css';
 import axios from "axios";
-import { EXIF } from "exif-js";
-
+import ExifReader from 'exifreader';
 
 export default {
 	components: {
@@ -149,17 +148,67 @@ export default {
 	},
 	methods: {
 		onFileChange(e) {
-			const files = e.target.files;
+			//TODO check that the file uploaded is a valid image file
 
+			const files = e.target.files;
+			
 			if (files.length > 0) {
+				
 				this.file = files[0];
+				
 				const reader = new FileReader();
+				this.updateMetaData();
 				reader.onload = (e) => {
 					this.imageDataUrl = e.target.result;
 					this.showCropper = true;
 					this.croppedImage = true;
 				};
 				reader.readAsDataURL(this.file);
+			}
+		},
+		// Credit goes to Youssef El-zein. 
+		//This is modified code from his work on the MoonTrek site.
+		async updateMetaData(){
+			try{
+				const tags = await ExifReader.load(this.file);
+				console.log(tags)
+				if (tags.GPSLongitude && tags.GPSLatitude && tags.DateTimeOriginal) {
+					// If so, keep imageData.hasExif true
+					this.hasExif = true;
+					// Set the date
+					this.date = tags.DateTimeOriginal.description;
+
+					// Keep all North latitude values positive
+					// and make South latitude values negative
+					if (tags.GPSLatitudeRef.value[0] === 'N') {
+						this.latitude = tags.GPSLatitude.description;
+					} else {
+						this.latitude = -1 * tags.GPSLatitude.description;
+					}
+
+					// Keep all East longitude values positive
+					// and make West longitude values negative
+					if (tags.GPSLongitudeRef.value[0] === 'E') {
+						this.longitude = tags.GPSLongitude.description;
+					} else {
+						this.longitude = -1 * tags.GPSLongitude.description;
+					}
+					console.log(tags.DateTimeOriginal.description)
+					const imageDate = tags.DateTimeOriginal.description
+					const [datePart, timePart] = imageDate.split(' ');
+					const [year, month, day] = datePart.split(':');
+
+					console.log(imageDate);
+					const temp_date = `${year}-${month}-${day}`;
+					this.date = temp_date;
+					console.log(this.date);
+					this.time = timePart;
+				}
+				else{
+					console.log('No relevent image metadata found.');
+				}
+			} catch (error) {
+				console.log(error);
 			}
 		},
 		// function that gets the cropped image and sends it to server-side

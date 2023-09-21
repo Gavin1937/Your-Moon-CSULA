@@ -1,8 +1,8 @@
 CLIENT (YourMoon)
 =================================================
-# upload-validation (client-side)
- - note that there are currently two folders named 'upload-validation'
- - so, you need to cd into the inner 'upload-validation' folder
+# client
+ - note that there are currently two folders named 'client'
+ - so, you need to cd into the inner 'client' folder
  - run the command 'npm install' to install the necessary node packages
  - once the packages have been installed, run the command command 'npm run dev' to start the client at 'localhost:5173'
 

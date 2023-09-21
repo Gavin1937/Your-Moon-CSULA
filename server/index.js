@@ -81,33 +81,33 @@ app.post("/picUpload", upload.single("lunarImage"), (req, res) => {
     	const imageType = req.file.mimetype; // type of the image file
     	const path = req.file.path; // gets the buffer
 
-			console.log(`NAME: ${imageName}`);
-			console.log(`IMAGE TYPE: ${imageType}`);
-			console.log(`path: ${path}`);
+		console.log(`NAME: ${imageName}`);
+		console.log(`IMAGE TYPE: ${imageType}`);
+		console.log(`path: ${path}`);
 
-			/*
-			 updated SQL statement for now, you would have to create your own database and table on your
-			 local machine since this isn't hosted on a server right now
-			*/
-			const sqlInsert =
-				"INSERT INTO LunarImageDB (img_name, img_type, img_file, longitude, latitude, m_time, m_date) values(?, ?, ?, ?, ?, ?, ?)";
+		/*
+			updated SQL statement for now, you would have to create your own database and table on your
+			local machine since this isn't hosted on a server right now
+		*/
+		const sqlInsert =
+			"INSERT INTO LunarImageDB (img_name, img_type, img_file, longitude, latitude, m_time, m_date) values(?, ?, ?, ?, ?, ?, ?)";
 
-			// query the SQL statement with the data and image file that the user provides from the client
-			db.query(sqlInsert, [imageName, imageType, path, longitude, latitude, time, date], (error, result) => {
-				if (error) {
-					console.log("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
-					throw error;
-				}
-				console.log("Successfully inserted into the lunarimages database!");
+		// query the SQL statement with the data and image file that the user provides from the client
+		db.query(sqlInsert, [imageName, imageType, path, longitude, latitude, time, date], (error, result) => {
+			if (error) {
+				console.log("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
+				throw error;
+			}
+			console.log("Successfully inserted into the lunarimages database!");
 
-			});
-			console.log("IMAGE INSERTED SUCCESSFULLY!");
-			res.status(200).json({
-				status: "UPLOAD SUCCESSFUL ! ✔️",
-				fileName: imgFile.filename,
-			});
-		}
-	} catch (error) {
+		});
+		console.log("IMAGE INSERTED SUCCESSFULLY!");
+		res.status(200).json({
+			status: "UPLOAD SUCCESSFUL ! ✔️",
+			fileName: imgFile.filename,
+		});
+	}
+	catch (error) {
 		res.status(500).json({
 			status: "UPLOAD FAILED ! ❌",
 			error,

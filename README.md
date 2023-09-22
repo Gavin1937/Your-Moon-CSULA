@@ -13,6 +13,10 @@ SERVER
  - once the packages have been installed, run the command 'npm run devStart' to start the server
  - for testing purposes, the link to the server is 'localhost:3001'
 
+# server (moondetect-server)
+ - [moondetect-server](./moondetect-server/README.md) is a server only for running moon detection algorithm on supplied images.
+ - checkout its [README](./moondetect-server/README.md) for building, running, and usage
+
 DATABASE
 =================================================
  - currently, you can only run this locally since there's no server that we can use (i think in the future we can use the schools virtual machine)

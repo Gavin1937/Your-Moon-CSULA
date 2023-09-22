@@ -171,7 +171,7 @@ export default {
 		async updateMetaData(){
 			try{
 				const tags = await ExifReader.load(this.file);
-				console.log(tags)
+				//console.log(tags)
 				if (tags.GPSLongitude && tags.GPSLatitude && tags.DateTimeOriginal) {
 					// If so, keep imageData.hasExif true
 					this.hasExif = true;
@@ -193,15 +193,12 @@ export default {
 					} else {
 						this.longitude = -1 * tags.GPSLongitude.description;
 					}
-					console.log(tags.DateTimeOriginal.description)
+					
 					const imageDate = tags.DateTimeOriginal.description
 					const [datePart, timePart] = imageDate.split(' ');
 					const [year, month, day] = datePart.split(':');
-
-					console.log(imageDate);
 					const temp_date = `${year}-${month}-${day}`;
 					this.date = temp_date;
-					console.log(this.date);
 					this.time = timePart;
 				}
 				else{

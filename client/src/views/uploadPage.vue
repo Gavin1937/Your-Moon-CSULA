@@ -208,6 +208,32 @@ export default {
 				console.log(error);
 			}
 		},
+		// try to detect moon position inside input file
+		// parameters:
+		//   * filename => string filename to search in server's "uploadedImages" folder
+		//   * _type    => string type, specifying the return type of api.
+		// 				   (checkout moondetect-server/README.md for detail)
+		// returns:
+		// object: {"type":"square","x":int,"y":int,"width":int}
+		async detectMoon(filename, _type="square") {
+			try {
+				const res = await axios.get("http://localhost:3002/detectMoon", {
+					params: {
+						"filename": filename,
+						"type": _type
+					}
+				});
+				
+				if (res.data.ok === false)
+					throw new Error(res.data.error);
+				
+				const {payload} = res.data;
+				return payload
+				
+			} catch (err) {
+				this.message = err;
+			}
+		},
 		// function that gets the cropped image and sends it to server-side
 		async uploadCroppedImage() {
 			try {
@@ -230,8 +256,13 @@ export default {
 					},
 				});
 				
-				const { status } = res.data;
+				const { status, fileName } = res.data;
 				console.log(`status: ${status}`);
+				console.log(`fileName: ${fileName}`);
+
+				// TODO: set the cropping box to the moon_position
+				const moon_position = await this.detectMoon(fileName);
+				console.log(`moon_position: ${JSON.stringify(moon_position)}`);
 
 				this.message = status;
 

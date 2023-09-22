@@ -139,3 +139,13 @@ Find Moon from filename
     }
 }
 ```
+
+* when failed
+
+```jsonc
+{
+    "ok": false,
+    "status": 400,
+    "error": "Error Message"
+}
+```

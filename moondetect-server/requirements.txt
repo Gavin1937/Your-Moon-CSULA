@@ -1,0 +1,4 @@
+numpy                  >= 1.23.5
+opencv-contrib-python  >= 4.8.0.76
+opencv-python          >= 4.8.0.76
+Flask                  >= 2.3.3

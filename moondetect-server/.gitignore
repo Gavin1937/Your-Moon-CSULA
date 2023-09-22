@@ -1,0 +1,7 @@
+# files
+*test*
+*main*
+
+# folders
+/__pycache__/
+/.venv/

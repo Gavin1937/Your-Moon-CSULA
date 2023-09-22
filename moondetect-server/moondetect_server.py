@@ -1,4 +1,5 @@
 from flask import Flask, Request, Response, request
+from flask_cors import CORS, cross_origin
 import json
 from copy import deepcopy
 from moondetect import detect_moon, circle_to_square, circle_to_rectangle
@@ -10,8 +11,10 @@ import traceback
 
 def create_app(**kwargs):
     APP = Flask(__name__, static_folder="static", static_url_path="")
+    cors = CORS(APP)
     # 10 MB max content length
     APP.config["MAX_CONTENT_LENGTH"] = 10 * 1024**2
+    APP.config['CORS_HEADERS'] = 'Content-Type'
     
     for k,v in kwargs.items():
         APP.config[k] = v
@@ -38,6 +41,7 @@ def create_app(**kwargs):
     
     # api
     @APP.route("/detectMoon", methods=["GET"])
+    @cross_origin()
     def detectMoon():
         """
         Find Moon from filename

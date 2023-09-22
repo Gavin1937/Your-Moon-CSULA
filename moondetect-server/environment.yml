@@ -10,3 +10,4 @@ dependencies:
     - opencv-contrib-python>=4.8.0.76
     - opencv-python>=4.8.0.76
     - Flask>=2.3.3
+    - flask-cors>=4.0.0

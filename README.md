@@ -8,7 +8,7 @@ CLIENT (YourMoon)
 
 SERVER
 =================================================
-# server (server-side)
+# backend-server (server-side)
  - run the command 'npm install' to install to necessary node packages
  - once the packages have been installed, run the command 'npm run devStart' to start the server
  - for testing purposes, the link to the server is 'localhost:3001'

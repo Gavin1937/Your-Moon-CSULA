@@ -220,7 +220,6 @@ def select_circle_by_brightness_perc(image, detected_circles):
 
 
 def select_n_circles_by_brightness_perc(image, detected_circles, n):
-    print(f'{len(detected_circles) = }')
     if detected_circles is None:
         return []
     elif len(detected_circles) <= n:
@@ -236,7 +235,6 @@ def select_n_circles_by_brightness_perc(image, detected_circles, n):
             result.append((mean, np.int32(xc), np.int32(yc), np.int32(rc)))
     
     result = [(r[1],r[2],r[3]) for r in sorted(result, reverse=True, key=lambda i:i[0])[:n]]
-    print(f'{result = }')
     # a better solution than current impl is:
     # https://stackoverflow.com/a/22654973
     return result

@@ -118,13 +118,13 @@ def create_app(**kwargs):
             
             ret = None
             if _type == 'circle':
-                ret = { "type":_type, "x": moon_loc[0], "y": moon_loc[1], "radius": moon_loc[2] }
+                ret = { "type":_type, "x": int(moon_loc[0]), "y": int(moon_loc[1]), "radius": int(moon_loc[2]) }
             elif _type == 'square':
                 moon_loc = circle_to_square(*moon_loc)
-                ret = { "type":_type, "x": moon_loc[0], "y": moon_loc[1], "width": moon_loc[2] }
+                ret = { "type":_type, "x": int(moon_loc[0]), "y": int(moon_loc[1]), "width": int(moon_loc[2]) }
             elif _type == 'rectangle':
                 moon_loc = circle_to_rectangle(*moon_loc)
-                ret = { "type":_type, "x1": moon_loc[0], "y1": moon_loc[1], "x2": moon_loc[2], "y2": moon_loc[3] }
+                ret = { "type":_type, "x1": int(moon_loc[0]), "y1": int(moon_loc[1]), "x2": int(moon_loc[2]), "y2": int(moon_loc[3]) }
             
         except Exception as err:
             print(f'Exception: {str(err)}')

@@ -31,11 +31,11 @@ def ResizeWithAspectRatio(image, width=None, height=None, longer_side_val=None, 
     if width is None and height is None:
         return (r, image)
     if width is None:
-        r = height / float(h)
-        dim = (int(w * r), height)
+        r = height / np.float32(h)
+        dim = (np.int32(w * r), height)
     else: # height is None
-        r = width / float(w)
-        dim = (width, int(h * r))
+        r = width / np.float32(w)
+        dim = (width, np.int32(h * r))
     
     return (r, cv2.resize(image, dim, interpolation=inter))
 
@@ -69,18 +69,18 @@ def apply_brightness_contrast(input_img, brightness = 0, contrast = 0):
 
 # https://stackoverflow.com/a/74813748
 def get_circle_pixel_mean(image, center_x, center_y, radius) -> float:
-    height = int(image.shape[0])
-    width = int(image.shape[1])
+    height = np.int32(image.shape[0])
+    width = np.int32(image.shape[1])
 
     xmin = center_x - radius
     if(xmin <= 0):
-        xmin = int(0)
+        xmin = np.int32(0)
     xmax = center_x + radius
     if(xmax >= width):
         xmax = width
     ymin = center_y - radius
     if(ymin <= 0):
-        ymin = int(0)
+        ymin = np.int32(0)
     ymax = center_y + radius
     if(ymax >= height):
         ymax = height
@@ -96,10 +96,10 @@ def get_circle_pixel_mean(image, center_x, center_y, radius) -> float:
 
             # inside circle
             if (distanceSquared <= radiusSquared):
-                pixel_sum += 0 if image[y, x] == 0 else 1
+                pixel_sum += image[y, x]
                 pixel_count += 1
     
-    return (pixel_sum / pixel_count)
+    return (pixel_sum / 255 / pixel_count)
 
 
 # image brightness percentage:
@@ -111,18 +111,18 @@ def calc_img_brightness_perc(image, width, height) -> float:
     pixel_sum = 0
     for x in range(0, width):
         for y in range(0, height):
-            pixel_sum += 0 if image[y, x] == 0 else 1
+            pixel_sum += image[y, x]
     
-    img_brightness_perc = (pixel_sum / (width*height)) # 0~1 float
+    img_brightness_perc = (pixel_sum / 255 / (width*height)) # 0~1 float
     return img_brightness_perc
 
 
 def cut_image_from_circle(image, height, width, x, y, radius, padding=15):
-    height = int(height)
-    width = int(width)
-    x = int(x)
-    y = int(y)
-    radius = int(radius)
+    height = np.int32(height)
+    width = np.int32(width)
+    x = np.int32(x)
+    y = np.int32(y)
+    radius = np.int32(radius)
     
     yStart = y - radius - padding
     if (yStart < 0):
@@ -174,7 +174,7 @@ def circle_to_rectangle(x, y, radius) -> tuple:
 def find_circles_in_img(image, **kwargs):
     
     for k,v in kwargs.items():
-        kwargs[k] = int(v)
+        kwargs[k] = np.int32(v)
     
     # maximum number of circles to process,
     # if cv2.HoughCircles returns more than that, we should consider adjust above parameters
@@ -188,14 +188,13 @@ def find_circles_in_img(image, **kwargs):
     # can't find circles, return the whole image
     if detected_circles is None:
         return np.array([[(
-            int(image.shape[1]/2),   # x
-            int(image.shape[0]/2),   # y
-            int(image.shape[1]/2)+3  # radius
+            np.int32(image.shape[1]/2),   # x
+            np.int32(image.shape[0]/2),   # y
+            np.int32(image.shape[1]/2)+3  # radius
         )]])
     
     # found too many circles
     circles_found = len(detected_circles[0, :])
-    # print(f'Circles found: {circles_found}')
     if circles_found >= circle_threshold:
         raise ValueError('Found Too Many Circles.')
     
@@ -209,7 +208,7 @@ def select_circle_by_brightness_perc(image, detected_circles):
     if detected_circles is not None:
         for (xc, yc, rc) in detected_circles[0, :]:
             # calc circle pixel mean (brightness percentage)
-            mean = get_circle_pixel_mean(image, int(xc), int(yc), int(rc))
+            mean = get_circle_pixel_mean(image, np.int32(xc), np.int32(yc), np.int32(rc))
             # find the maximum mean thats below 0.98
             if mean < 0.98 and mean > max_mean:
                 x = xc
@@ -220,6 +219,29 @@ def select_circle_by_brightness_perc(image, detected_circles):
     return (x,y,radius)
 
 
+def select_n_circles_by_brightness_perc(image, detected_circles, n):
+    print(f'{len(detected_circles) = }')
+    if detected_circles is None:
+        return []
+    elif len(detected_circles) <= n:
+        return detected_circles
+    
+    result = []
+    
+    for (xc, yc, rc) in detected_circles[0, :]:
+        # calc circle pixel mean (brightness percentage)
+        mean = get_circle_pixel_mean(image, np.int32(xc), np.int32(yc), np.int32(rc))
+        # find the maximum mean thats below 0.98
+        if mean < 0.98:
+            result.append((mean, np.int32(xc), np.int32(yc), np.int32(rc)))
+    
+    result = [(r[1],r[2],r[3]) for r in sorted(result, reverse=True, key=lambda i:i[0])[:n]]
+    print(f'{result = }')
+    # a better solution than current impl is:
+    # https://stackoverflow.com/a/22654973
+    return result
+
+
 def select_circle_by_largest_radius(image, detected_circles):
     x, y, radius = (-1,-1,-1)
     
@@ -228,12 +250,36 @@ def select_circle_by_largest_radius(image, detected_circles):
         detection_circles = np.uint16(np.around(detected_circles))
         for (xc, yc, rc) in detection_circles[0, :]:
             if(rc > radius):
-                x = int(xc)
-                y = int(yc)
-                radius = int(rc)
+                x = np.int32(xc)
+                y = np.int32(yc)
+                radius = np.int32(rc)
     
     return (x,y,radius)
 
+
+def select_circle_by_shape(image, detected_circles):
+    x, y, radius = (-1,-1,-1)
+    max_contour = -1
+    
+    #checks for circles then finds the circle contains a shape with largest number of sides
+    if detected_circles is not None:
+        detection_circles = np.uint16(np.around(detected_circles))
+        for (xc, yc, rc) in detection_circles[0, :]:
+            circle,_ = cut_image_from_circle(image, image.shape[0], image.shape[1], xc, yc, rc)
+            contours,_ = cv2.findContours(circle, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            max_approx_len = -1
+            for contour in contours:
+                approx = cv2.approxPolyDP(contour, 0.01 * cv2.arcLength(contour, True), True)
+                approx_len = len(approx)
+                if (approx_len > max_approx_len):
+                    max_approx_len = approx_len
+            if (max_approx_len > max_contour):
+                max_contour = max_approx_len
+                x = xc
+                y = yc
+                radius = rc
+    
+    return (x,y,radius)
 
 
 
@@ -255,16 +301,21 @@ def detect_moon(imagePath:Union[str, Path]) -> tuple:
     # usually, moon will be white after this conversion
     gray = apply_brightness_contrast(gray, contrast=127)
     
+    # set gray image to black & white only image by setting its threshold
+    # opencv impl of threshold
+    # dst[j] = src[j] > thresh ? maxval : 0;
+    # using threshold to binarize img will rm all the branching when calculating img_brightness_perc
+    # which make calculation much faster
+    _, gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY)
+    
+    
     #getting height and width of image
     height = img.shape[0]
     width = img.shape[1]
-    longer_side_name = None
     if height >= width:
-        longer_side_name = 'height'
         longer_side = height
         shorter_side = width
     else:
-        longer_side_name = 'width'
         longer_side = width
         shorter_side = height
     
@@ -298,6 +349,7 @@ def detect_moon(imagePath:Union[str, Path]) -> tuple:
     }
     
     result_list = []
+    args = find_circles_in_img_kwargs
     
     # process image in each iteration
     for iteration in range(MAX_ITERATION):
@@ -312,19 +364,19 @@ def detect_moon(imagePath:Union[str, Path]) -> tuple:
         
         # adjust parameter for find_circles_in_img()
         args = {
-            'dp': dp,
-            'minDist': minDist,
+            'dp': args['dp']*2,
+            'minDist': 50,
             'minRadius': im_longer_side * minRadRatio,
             'maxRadius': im_longer_side * maxRadRatio,
-            'param1': param1,
-            'param2': param2,
+            'param1': args['param1']*2,
+            'param2': args['param2']*2,
         }
         
         img_brightness_perc = calc_img_brightness_perc(gray, im_width, im_height)
         
         if img_brightness_perc < 0.01:
-            find_circles_in_img_kwargs['dp'] *= 4
-            find_circles_in_img_kwargs['minRadius'] /= 2
+            args['dp'] *= 4
+            args['minRadius'] /= 2
         
         detected_circles = find_circles_in_img(gray, **args)
         
@@ -334,16 +386,22 @@ def detect_moon(imagePath:Union[str, Path]) -> tuple:
             x,y,radius = select_circle_by_largest_radius(gray, detected_circles)
         
         elif iteration > 0:
-            x,y,radius = select_circle_by_brightness_perc(gray, detected_circles)
+            # # find circle w/ highest brightness perc
+            # x,y,radius = select_circle_by_brightness_perc(gray, detected_circles)
+            
+            # find 3 circles w/ highest brightness perc
+            # and then find the one with highest number of shape side
+            candidate_circles = select_n_circles_by_brightness_perc(gray, detected_circles, 5)
+            x,y,radius = select_circle_by_shape(gray, candidate_circles)
         
         # cannot select circle, (select circle function failed)
         # maybe we didn't find any circle
         # use the center of image as the new circle
         if x < 0 or y < 0 or radius < 0:
-            x,y,radius = (int(gray.shape[1]/2), int(gray.shape[0]/2), int(gray.shape[1]/2)+3)
+            x,y,radius = (np.int32(gray.shape[1]/2), np.int32(gray.shape[0]/2), np.int32(gray.shape[1]/2)+3)
         
         # cut out part of img from circle
-        gray,rect = cut_image_from_circle(gray, im_height, im_width, x, y, radius, padding=5)
+        gray,rect = cut_image_from_circle(gray, im_height, im_width, x, y, radius, padding=30)
         result_list.append( (iteration, (x,y,radius), rect) )
     
     
@@ -363,16 +421,12 @@ def detect_moon(imagePath:Union[str, Path]) -> tuple:
         final_circle_y += last_rect[1]
         last_rect = [l+r for l,r in zip(last_rect,rect)]
     
-    if longer_side_name == 'height':
-        final_circle_x = final_circle_x / ret_ratio
-        final_circle_y = final_circle_y / ret_ratio
-    else:
-        final_circle_x = final_circle_x / ret_ratio
-        final_circle_y = final_circle_y / ret_ratio
+    
+    final_circle_x = final_circle_x / ret_ratio
+    final_circle_y = final_circle_y / ret_ratio
     final_circle_radius = final_circle_radius / ret_ratio
     
-    
-    return (int(final_circle_x), int(final_circle_y), int(final_circle_radius))
+    return (np.int32(final_circle_x), np.int32(final_circle_y), np.int32(final_circle_radius))
 
 
 

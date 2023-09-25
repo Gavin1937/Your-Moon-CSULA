@@ -102,11 +102,17 @@ def create_app(**kwargs):
             DATA_PATH = APP.config.get("DATA_PATH")
             if DATA_PATH is not None:
                 DATA_PATH = Path(DATA_PATH)
+            else:
+                raise ValueError('Cannot find data_path.')
+            data_table = dict()
+            for file in DATA_PATH.iterdir():
+                if file.is_file():
+                    data_table[file.name] = file
             
             _filename = args.get("filename")
-            if _filename is None or DATA_PATH is None or (DATA_PATH/_filename).exists() == False:
+            if _filename is None or _filename not in data_table:
                 raise ValueError('No filename or cannot find file in data_path.')
-            _filename = DATA_PATH/_filename
+            _filename = data_table[_filename]
             
             _type = args.get("type")
             if _type is None:

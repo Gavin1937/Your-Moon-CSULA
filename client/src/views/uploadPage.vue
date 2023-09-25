@@ -19,8 +19,14 @@
 				<input type="file" ref="lunarImage" @change="onFileChange" />
 				<br>
 				<br>
-				<cropper class="resize" ref="cropper" v-if="showCropper" :src="imageDataUrl" :options="cropperOptions"
-					@ready="onCropperReady" />
+				<cropper class="resize" ref="cropper" v-if="showCropper" :src="imageDataUrl" 				
+				:zoomOnWheel = "false"
+				:zoomable = "false"
+				:zoomOnTouch = "false"
+				drag-mode = "crop"
+				:movable = "false"
+				:guides = "false"
+				@ready="onCropperReady" />
 			</div>
 
 		<div v-if="croppedImage">
@@ -124,11 +130,6 @@ export default {
 			file: null,
 			imageDataUrl: null,
 			showCropper: false,
-			cropperOptions: {
-				aspectRatio: 1,
-				autoCropArea: 1,
-				viewMode: 1,
-			},
 			croppedImage: null,
 
 			// "META DATA"

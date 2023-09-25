@@ -23,9 +23,7 @@
 				:zoomOnWheel = "false"
 				:zoomable = "false"
 				:zoomOnTouch = "false"
-				drag-mode = "crop"
 				:movable = "false"
-				:guides = "false"
 				@ready="onCropperReady" />
 			</div>
 

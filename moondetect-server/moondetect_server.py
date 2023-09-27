@@ -104,6 +104,7 @@ def create_app(**kwargs):
                 DATA_PATH = Path(DATA_PATH)
             else:
                 raise ValueError('Cannot find data_path.')
+            
             data_table = dict()
             for file in DATA_PATH.iterdir():
                 if file.is_file():
@@ -117,7 +118,7 @@ def create_app(**kwargs):
             _type = args.get("type")
             if _type is None:
                 _type = 'circle'
-            elif _type not in ['circle', 'square', 'rectangle']:
+            if _type not in ['circle', 'square', 'rectangle']:
                 raise ValueError('Invalid return type.')
             
             moon_loc = detect_moon(_filename)

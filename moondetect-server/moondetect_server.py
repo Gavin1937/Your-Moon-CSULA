@@ -12,8 +12,8 @@ import traceback
 def create_app(**kwargs):
     APP = Flask(__name__, static_folder="static", static_url_path="")
     cors = CORS(APP)
-    # 10 MB max content length
-    APP.config["MAX_CONTENT_LENGTH"] = 10 * 1024**2
+    # 30 MB max content length
+    APP.config["MAX_CONTENT_LENGTH"] = 30 * 1024**2
     APP.config['CORS_HEADERS'] = 'Content-Type'
     
     for k,v in kwargs.items():

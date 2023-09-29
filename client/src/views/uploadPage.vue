@@ -192,8 +192,7 @@ export default {
 		async updateMetaData(){
 			try{
 				const tags = await ExifReader.load(this.file);
-				//console.log(tags)
-				console.log(tags);
+				//console.log(tags);
 				if (tags.GPSLongitude && tags.GPSLatitude && tags.DateTimeOriginal) {
 					// If so, keep imageData.hasExif true
 					this.hasExif = true;

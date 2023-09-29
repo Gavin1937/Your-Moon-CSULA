@@ -91,6 +91,26 @@
 											</div>
 										</div>
 									</div>
+									<div class="column is-one-fifth">
+										<div class="field">
+											<label class="label">
+												Camera Make
+											</label>
+											<div class="control">
+												<input class="input" type="text" v-model="cameraMake" />
+											</div>
+										</div>
+									</div>
+									<div class="column is-one-fifth">
+										<div class="field">
+											<label class="label">
+												Camera Model
+											</label>
+											<div class="control">
+												<input class="input" type="text" v-model="cameraModel" />
+											</div>
+										</div>
+									</div>
 								</div>
 							</div>
 							<div class="field">
@@ -142,7 +162,9 @@ export default {
 			// Tracks date input if there isn't meta data
 			date: '',
 			// Tracks time input if there isn't meta data
-			time: ''
+			time: '',
+			cameraMake:'',
+			cameraModel:''
 		};
 	},
 	methods: {
@@ -171,6 +193,7 @@ export default {
 			try{
 				const tags = await ExifReader.load(this.file);
 				//console.log(tags)
+				console.log(tags);
 				if (tags.GPSLongitude && tags.GPSLatitude && tags.DateTimeOriginal) {
 					// If so, keep imageData.hasExif true
 					this.hasExif = true;
@@ -199,6 +222,8 @@ export default {
 					const temp_date = `${year}-${month}-${day}`;
 					this.date = temp_date;
 					this.time = timePart;
+					this.cameraMake = tags.Make.description;
+					this.cameraModel = tags.Model.description;
 				}
 				else{
 					console.log('No relevent image metadata found.');

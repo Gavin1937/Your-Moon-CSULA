@@ -69,7 +69,18 @@
 											</div>
 										</div>
 									</div>
+									<div class="column is-one-fifth">
+										<div class="field">
+											<label class="label">
+												Altitude 
+											</label>
+											<div class="control">
+												<input class="input" type="text" v-model="altitude" />
+											</div>
+										</div>
+									</div>
 								</div>
+
 								<div class="columns is-centered">
 									<div class="column is-one-fifth">
 										<div class="field">
@@ -88,6 +99,26 @@
 											</label>
 											<div class="control">
 												<input class="input" type="time" v-model="time" />
+											</div>
+										</div>
+									</div>
+									<div class="column is-one-fifth">
+										<div class="field">
+											<label class="label">
+												Instrument Make
+											</label>
+											<div class="control">
+												<input class="input" type="text" v-model="make" />
+											</div>
+										</div>
+									</div>
+									<div class="column is-one-fifth">
+										<div class="field">
+											<label class="label">
+												Instrument Model
+											</label>
+											<div class="control">
+												<input class="input" type="text" v-model="model" />
 											</div>
 										</div>
 									</div>
@@ -138,11 +169,14 @@ export default {
 			hasExif: true,
 			latitude: '',
 			longitude: '',
+			altitude: '',
 			timeStamp: '',
 			// Tracks date input if there isn't meta data
 			date: '',
 			// Tracks time input if there isn't meta data
-			time: ''
+			time: '',
+			make:'',
+			model:''
 		};
 	},
 	methods: {
@@ -170,13 +204,12 @@ export default {
 		async updateMetaData(){
 			try{
 				const tags = await ExifReader.load(this.file);
-				//console.log(tags)
-				if (tags.GPSLongitude && tags.GPSLatitude && tags.DateTimeOriginal) {
+				//console.log(tags);
+				
 					// If so, keep imageData.hasExif true
 					this.hasExif = true;
 					// Set the date
-					this.date = tags.DateTimeOriginal.description;
-
+				if(tags.GPSLongitude && tags.GPSLatitude){
 					// Keep all North latitude values positive
 					// and make South latitude values negative
 					if (tags.GPSLatitudeRef.value[0] === 'N') {
@@ -192,16 +225,26 @@ export default {
 					} else {
 						this.longitude = -1 * tags.GPSLongitude.description;
 					}
-					
+				}
+				if(tags.GPSAltitude){
+					this.altitude = tags.GPSAltitude.description;
+				}
+				if(tags.DateTimeOriginal){
+					// Get datetime in YYYY:MM:DD HH:MM:SS
 					const imageDate = tags.DateTimeOriginal.description
+					//Split time and date
 					const [datePart, timePart] = imageDate.split(' ');
+					//Split date
 					const [year, month, day] = datePart.split(':');
+					//Reformat date into something compatible with the field.
 					const temp_date = `${year}-${month}-${day}`;
 					this.date = temp_date;
 					this.time = timePart;
 				}
-				else{
-					console.log('No relevent image metadata found.');
+				if(tags.Make && tags.Model){
+					//As of now this only captures camera make and model
+					this.make = tags.Make.description;
+					this.model = tags.Model.description;
 				}
 			} catch (error) {
 				console.log(error);

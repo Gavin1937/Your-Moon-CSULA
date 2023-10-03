@@ -1,6 +1,10 @@
 
 import Module from './MoonRegistration';
 
+
+// Reference:
+// https://stackoverflow.com/a/59537780
+
 let instance = {
     ready: new Promise(resolve => {
         Module({
@@ -17,7 +21,7 @@ let instance = {
 let MoonRegistration = {
     MoonDetection: async (fileObject, retType, callback) => {
         instance.ready.then(_ => {
-            var img = new Image();
+            let img = new Image();
             img.src = URL.createObjectURL(fileObject);
             
             img.onload = function () {

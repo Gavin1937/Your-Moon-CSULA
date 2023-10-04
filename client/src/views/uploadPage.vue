@@ -149,6 +149,7 @@ import Cropper from 'vue-cropperjs';
 import 'cropperjs/dist/cropper.css';
 import axios from "axios";
 import ExifReader from 'exifreader';
+import MoonRegistration from '../moon-registration';
 
 export default {
 	components: {
@@ -250,28 +251,22 @@ export default {
 				console.log(error);
 			}
 		},
-		// try to detect moon position inside input file
+		// wrapper function to run moon detection algorithm
 		// parameters:
-		//   * filename => string filename to search in server's "uploadedImages" folder
-		//   * _type    => string type, specifying the return type of api.
-		// 				   (checkout moondetect-server/README.md for detail)
-		// returns:
-		// object: {"type":"square","x":int,"y":int,"width":int}
-		async detectMoon(filename, _type="square") {
+		//   * _fileObject => one element of js FileList object
+		//   * _type       => string type, specifying the return type of api.
+		//                    If _type === 'circle'
+		//                    return: { "type": "circle", "x": int, "y": int, "radius": int }
+		// 
+		//                    If _type === 'square'
+		//                    return: { "type": "square", "x": int, "y": int, "width": int }
+		// 
+		//                    If _type === 'rectangle'
+		//                    return: { "type": "rectangle", "x1": int, "y1": int, "x2": int, "y2": int }
+		//   * returns from MoonDetection() will be receive & process by this.onMoonPositionUpdate()
+		async RunDetectMoon(_fileObject, _type="square") {
 			try {
-				const res = await axios.get("http://localhost:3002/detectMoon", {
-					params: {
-						"filename": filename,
-						"type": _type
-					}
-				});
-				
-				if (res.data.ok === false)
-					throw new Error(res.data.error);
-				
-				const {payload} = res.data;
-				return payload
-				
+				MoonRegistration.MoonDetection(_fileObject, _type, this.onMoonPositionUpdate)
 			} catch (err) {
 				this.message = err;
 			}
@@ -284,6 +279,8 @@ export default {
 						resolve(img);
 					});
 				});
+
+				this.RunDetectMoon(this.file)
 
 				const formData = new FormData();
 				formData.append("lunarImage", imgFile, '.jpg');
@@ -298,20 +295,19 @@ export default {
 					},
 				});
 				
-				const { status, fileName } = res.data;
+				const { status } = res.data;
 				console.log(`status: ${status}`);
-				console.log(`fileName: ${fileName}`);
-
-				// TODO: set the cropping box to the moon_position
-				const moon_position = await this.detectMoon(fileName);
-				console.log(`moon_position: ${JSON.stringify(moon_position)}`);
 
 				this.message = status;
 
 			} catch (err) {
 				this.message = err;
 			}
-		}
+		},
+		async onMoonPositionUpdate(new_position) {
+			// TODO: set the cropping box to the moon_position
+			console.log('moon_position:', new_position);
+		},
 	},
 };
 </script>

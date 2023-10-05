@@ -48,10 +48,8 @@ function onFileChange(e) {
 			data.imageDataUrl = e.target.result;
 			data.showCropper = true;
 			data.croppedImage = true;
-			console.log('Hello'+ data.showCropper);
 		};
 		reader.readAsDataURL(data.file);
-		console.log(data.showCropper);
 	}
 }
 
@@ -233,7 +231,7 @@ async function uploadCroppedImage() {
 										</div>
 									</div>
 									<div class="column is-one-fifth">
-										<div class="field">
+										Migrated to Composition API.	<div class="field">
 											<label class="label">
 												Altitude 
 											</label>

@@ -145,10 +145,10 @@ async function uploadCroppedImage() {
 		// make post request to upload image to database
 		const res = await axios.post("http://localhost:3001/picUpload", formData, {
 			params: {
-				latitude: latitude,
-				longitude: longitude,
-				time: time,
-				date: date,
+				latitude: data.latitude,
+				longitude: data.longitude,
+				time: data.time,
+				date: data.date,
 			},
 		});
 		
@@ -160,7 +160,7 @@ async function uploadCroppedImage() {
 		const moon_position = await detectMoon(fileName);
 		console.log(`moon_position: ${JSON.stringify(moon_position)}`);
 
-		message = status;
+		data.message = status;
 
 	} catch (err) {
 		message = err;

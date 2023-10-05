@@ -5,7 +5,165 @@
 	- restrict users from uploading any file type other than jpg. 
 	- add not null.
 -->
+<!-- eslint-disable prettier/prettier -->
+<script setup>
+import Cropper from 'vue-cropperjs';
+import 'cropperjs/dist/cropper.css';
+import axios from "axios";
+import ExifReader from 'exifreader';
+import {ref, reactive} from "vue";
+import MoonRegistration from '../moon-registration';
 
+
+//This is the ref to the cropper DOM element
+const cropr = ref(null);
+
+let data = reactive({
+	// "META DATA"
+	image : '',
+	// Message for displaying success or failure when uploading
+	message : '',
+	// Tracks if image has meta data
+	hasExif : true,
+	latitude : '',
+	longitude : '',
+	altitude : '',
+	timeStamp : '',
+	// Tracks date input if there isn't meta data
+	date : '',
+	// Tracks time input if there isn't meta data
+	time : '',
+	file : null,
+	imageDataUrl : null,
+	showCropper : false,
+	croppedImage : null,
+})
+function onFileChange(e) {
+	//TODO check that the file uploaded is a valid image file
+	const files = e.target.files;
+	
+	if (files.length > 0) {
+		
+		data.file = files[0];
+		
+		const reader = new FileReader();
+		updateMetaData();
+		reader.onload = (e) => {
+			data.imageDataUrl = e.target.result;
+			data.showCropper = true;
+			data.croppedImage = true;
+		};
+		reader.readAsDataURL(data.file);
+		// TODO: set the cropping box to the moon_position
+		RunDetectMoon(data.file);
+	}
+}
+
+// Credit goes to Youssef El-zein. 
+//This is modified code from his work on the MoonTrek site.
+async function updateMetaData(){
+	try{
+		const tags = await ExifReader.load(data.file);
+		//console.log(tags);
+
+		// If so, keep imageData.hasExif true
+		data.hasExif = true;
+		// Set the date
+		if(tags.GPSLongitude && tags.GPSLatitude){
+			// Keep all North latitude values positive
+			// and make South latitude values negative
+			if (tags.GPSLatitudeRef.value[0] === 'N') {
+				data.latitude = tags.GPSLatitude.description;
+			} else {
+				data.latitude = -1 * tags.GPSLatitude.description;
+			}
+
+			// Keep all East longitude values positive
+			// and make West longitude values negative
+			if (tags.GPSLongitudeRef.value[0] === 'E') {
+				data.longitude = tags.GPSLongitude.description;
+			} else {
+				data.longitude = -1 * tags.GPSLongitude.description;
+			}
+		}
+		if(tags.GPSAltitude){
+			data.altitude = tags.GPSAltitude.description;
+		}
+		if(tags.DateTimeOriginal){
+			// Get datetime in YYYY:MM:DD HH:MM:SS
+			const imageDate = tags.DateTimeOriginal.description
+			//Split time and date
+			const [datePart, timePart] = imageDate.split(' ');
+			//Split date
+			const [year, month, day] = datePart.split(':');
+			//Reformat date into something compatible with the field.
+			const temp_date = `${year}-${month}-${day}`;
+			data.date = temp_date;
+			data.time = timePart;
+		}
+		if(tags.Make && tags.Model){
+			//As of now this only captures camera make and model
+			data.make = tags.Make.description;
+			data.model = tags.Model.description;
+		}
+	} catch (error) {
+		console.log(error);
+	}
+}
+// wrapper function to run moon detection algorithm
+// parameters:
+//   * _fileObject => one element of js FileList object
+//   * _type       => string type, specifying the return type of api.
+//                    If _type === 'circle'
+//                    return: { "type": "circle", "x": int, "y": int, "radius": int }
+// 
+//                    If _type === 'square'
+//                    return: { "type": "square", "x": int, "y": int, "width": int }
+// 
+//                    If _type === 'rectangle'
+//                    return: { "type": "rectangle", "x1": int, "y1": int, "x2": int, "y2": int }
+//   * returns from MoonDetection() will be receive & process by this.onMoonPositionUpdatse()
+async function RunDetectMoon(_fileObject, _type="square") {
+	try {
+		MoonRegistration.MoonDetection(_fileObject, _type, onMoonPositionUpdate)
+	} catch (err) {
+		data.message = err;
+	}
+}
+async function onMoonPositionUpdate(new_position) {
+			// TODO: set the cropping box to the moon_position
+			console.log('moon_position:', new_position);
+}
+// function that gets the cropped image and sends it to server-side
+async function uploadCroppedImage() {
+	try {
+		const imgFile = await new Promise(resolve => {
+			cropr.value.getCroppedCanvas().toBlob(img => {
+				resolve(img);
+			});
+		});
+		const formData = new FormData();
+		formData.append("lunarImage", imgFile, '.jpg');
+		// make post request to upload image to database
+		const res = await axios.post("http://localhost:3001/picUpload", formData, {
+			params: {
+				latitude: data.latitude,
+				longitude: data.longitude,
+				time: data.time,
+				date: data.date,
+			},
+		});
+		
+		const { status } = res.data;
+		console.log(`status: ${status}`);
+		
+		data.message = status;
+
+	} catch (err) {
+		data.message = err;
+	}
+}
+</script>
 
 <!-- eslint-disable prettier/prettier -->
 <template>
@@ -19,7 +177,7 @@
 				<input type="file" ref="lunarImage" @change="onFileChange" />
 				<br>
 				<br>
-				<cropper class="resize" ref="cropper" v-if="showCropper" :src="imageDataUrl" 				
+				<cropper class="resize" ref="cropr" v-if="data.showCropper" :src="data.imageDataUrl" 				
 				:zoomOnWheel = "false"
 				:zoomable = "false"
 				:zoomOnTouch = "false"
@@ -27,8 +185,7 @@
 				@ready="onCropperReady" />
 			</div>
 
-		<div v-if="croppedImage">
-
+		<div v-if="data.croppedImage">
 			<div class="cent">
 				<div id="image-upload">
 					<form @submit.prevent="onSubmit" enctype="multipart/form-data">
@@ -55,7 +212,7 @@
 												Latitude
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="latitude" />
+												<input class="input" type="text" v-model="data.latitude" />
 											</div>
 										</div>
 									</div>
@@ -65,17 +222,17 @@
 												Longitude
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="longitude" />
+												<input class="input" type="text" v-model="data.longitude" />
 											</div>
 										</div>
 									</div>
 									<div class="column is-one-fifth">
-										<div class="field">
+							<div class="field">
 											<label class="label">
 												Altitude 
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="altitude" />
+												<input class="input" type="text" v-model="data.altitude" />
 											</div>
 										</div>
 									</div>
@@ -88,7 +245,7 @@
 												Date
 											</label>
 											<div class="control">
-												<input class="input" type="date" v-model="date" />
+												<input class="input" type="date" v-model="data.date" />
 											</div>
 										</div>
 									</div>
@@ -98,7 +255,7 @@
 												Time
 											</label>
 											<div class="control">
-												<input class="input" type="time" v-model="time" />
+												<input class="input" type="time" v-model="data.time" />
 											</div>
 										</div>
 									</div>
@@ -108,7 +265,7 @@
 												Instrument Make
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="make" />
+												<input class="input" type="text" v-model="data.make" />
 											</div>
 										</div>
 									</div>
@@ -118,7 +275,7 @@
 												Instrument Model
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="model" />
+												<input class="input" type="text" v-model="data.model" />
 											</div>
 										</div>
 									</div>
@@ -131,10 +288,10 @@
 							</div>
 						</form>
 						<p id="status-message">
-							{{ this.message }}
+							{{ data.message }}
 						</p>
 					</div>
-					<div v-if="croppedImage">
+					<div v-if="data.croppedImage">
 						<button type="button" class="btn btn-primary" @click="uploadCroppedImage">Upload</button>
 					</div>
 				</div>
@@ -143,174 +300,7 @@
 	</body>
 </template>
   
-<!-- eslint-disable prettier/prettier -->
-<script>
-import Cropper from 'vue-cropperjs';
-import 'cropperjs/dist/cropper.css';
-import axios from "axios";
-import ExifReader from 'exifreader';
-import MoonRegistration from '../moon-registration';
 
-export default {
-	components: {
-		Cropper,
-	},
-	data() {
-		return {
-			file: null,
-			imageDataUrl: null,
-			showCropper: false,
-			croppedImage: null,
-
-			// "META DATA"
-			image: '',
-			// Message for displaying success or failure when uploading
-			message: '',
-			// Tracks if image has meta data
-			hasExif: true,
-			latitude: '',
-			longitude: '',
-			altitude: '',
-			timeStamp: '',
-			// Tracks date input if there isn't meta data
-			date: '',
-			// Tracks time input if there isn't meta data
-			time: '',
-			make:'',
-			model:''
-		};
-	},
-	methods: {
-		onFileChange(e) {
-			//TODO check that the file uploaded is a valid image file
-
-			const files = e.target.files;
-			
-			if (files.length > 0) {
-				
-				this.file = files[0];
-				
-				const reader = new FileReader();
-				this.updateMetaData();
-				reader.onload = (e) => {
-					this.imageDataUrl = e.target.result;
-					this.showCropper = true;
-					this.croppedImage = true;
-				};
-				reader.readAsDataURL(this.file);
-			}
-		},
-		// Credit goes to Youssef El-zein. 
-		//This is modified code from his work on the MoonTrek site.
-		async updateMetaData(){
-			try{
-				const tags = await ExifReader.load(this.file);
-				//console.log(tags);
-				
-					// If so, keep imageData.hasExif true
-					this.hasExif = true;
-					// Set the date
-				if(tags.GPSLongitude && tags.GPSLatitude){
-					// Keep all North latitude values positive
-					// and make South latitude values negative
-					if (tags.GPSLatitudeRef.value[0] === 'N') {
-						this.latitude = tags.GPSLatitude.description;
-					} else {
-						this.latitude = -1 * tags.GPSLatitude.description;
-					}
-
-					// Keep all East longitude values positive
-					// and make West longitude values negative
-					if (tags.GPSLongitudeRef.value[0] === 'E') {
-						this.longitude = tags.GPSLongitude.description;
-					} else {
-						this.longitude = -1 * tags.GPSLongitude.description;
-					}
-				}
-				if(tags.GPSAltitude){
-					this.altitude = tags.GPSAltitude.description;
-				}
-				if(tags.DateTimeOriginal){
-					// Get datetime in YYYY:MM:DD HH:MM:SS
-					const imageDate = tags.DateTimeOriginal.description
-					//Split time and date
-					const [datePart, timePart] = imageDate.split(' ');
-					//Split date
-					const [year, month, day] = datePart.split(':');
-					//Reformat date into something compatible with the field.
-					const temp_date = `${year}-${month}-${day}`;
-					this.date = temp_date;
-					this.time = timePart;
-				}
-				if(tags.Make && tags.Model){
-					//As of now this only captures camera make and model
-					this.make = tags.Make.description;
-					this.model = tags.Model.description;
-				}
-			} catch (error) {
-				console.log(error);
-			}
-		},
-		// wrapper function to run moon detection algorithm
-		// parameters:
-		//   * _fileObject => one element of js FileList object
-		//   * _type       => string type, specifying the return type of api.
-		//                    If _type === 'circle'
-		//                    return: { "type": "circle", "x": int, "y": int, "radius": int }
-		// 
-		//                    If _type === 'square'
-		//                    return: { "type": "square", "x": int, "y": int, "width": int }
-		// 
-		//                    If _type === 'rectangle'
-		//                    return: { "type": "rectangle", "x1": int, "y1": int, "x2": int, "y2": int }
-		//   * returns from MoonDetection() will be receive & process by this.onMoonPositionUpdate()
-		async RunDetectMoon(_fileObject, _type="square") {
-			try {
-				MoonRegistration.MoonDetection(_fileObject, _type, this.onMoonPositionUpdate)
-			} catch (err) {
-				this.message = err;
-			}
-		},
-		// function that gets the cropped image and sends it to server-side
-		async uploadCroppedImage() {
-			try {
-				const imgFile = await new Promise(resolve => {
-					this.$refs.cropper.getCroppedCanvas().toBlob(img => {
-						resolve(img);
-					});
-				});
-
-				this.RunDetectMoon(this.file)
-
-				const formData = new FormData();
-				formData.append("lunarImage", imgFile, '.jpg');
-
-				// make post request to upload image to database
-				const res = await axios.post("http://localhost:3001/picUpload", formData, {
-					params: {
-						latitude: this.latitude,
-						longitude: this.longitude,
-						time: this.time,
-						date: this.date,
-					},
-				});
-				
-				const { status } = res.data;
-				console.log(`status: ${status}`);
-
-				this.message = status;
-
-			} catch (err) {
-				this.message = err;
-			}
-		},
-		async onMoonPositionUpdate(new_position) {
-			// TODO: set the cropping box to the moon_position
-			console.log('moon_position:', new_position);
-		},
-	},
-};
-</script>
 
 <!-- eslint-disable prettier/prettier -->
 <style>
@@ -320,12 +310,12 @@ export default {
 .resize {
 	border: 10px solid;
 	border-color: teal;
-
 	object-fit: fill;
 }
 
 .txt {
 	color: white;
+	/*font-family: monospace;*/
 }
 
 .ins {
@@ -403,8 +393,8 @@ export default {
 }
 
 .background {
-	/* background-color: black; */
-
+	/*background-color: black; 
+	*/
 	background-repeat: no-repeat;
 	background-image: url("moon_phases.jpg");
 	background-size: cover;

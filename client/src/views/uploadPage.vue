@@ -11,9 +11,12 @@ import Cropper from 'vue-cropperjs';
 import 'cropperjs/dist/cropper.css';
 import axios from "axios";
 import ExifReader from 'exifreader';
-import {reactive} from "vue";
+import {ref, reactive} from "vue";
 import MoonRegistration from '../moon-registration';
 
+
+//This is the ref to the cropper DOM element
+const cropr = ref(null);
 
 let data = reactive({
 	// "META DATA"
@@ -51,6 +54,7 @@ function onFileChange(e) {
 			data.croppedImage = true;
 		};
 		reader.readAsDataURL(data.file);
+		// TODO: set the cropping box to the moon_position
 		RunDetectMoon(data.file);
 	}
 }
@@ -123,7 +127,7 @@ async function RunDetectMoon(_fileObject, _type="square") {
 	try {
 		MoonRegistration.MoonDetection(_fileObject, _type, onMoonPositionUpdate)
 	} catch (err) {
-		this.message = err;
+		data.message = err;
 	}
 }
 async function onMoonPositionUpdate(new_position) {
@@ -134,14 +138,12 @@ async function onMoonPositionUpdate(new_position) {
 async function uploadCroppedImage() {
 	try {
 		const imgFile = await new Promise(resolve => {
-			$refs.cropper.getCroppedCanvas().toBlob(img => {
+			cropr.value.getCroppedCanvas().toBlob(img => {
 				resolve(img);
 			});
 		});
-
 		const formData = new FormData();
 		formData.append("lunarImage", imgFile, '.jpg');
-
 		// make post request to upload image to database
 		const res = await axios.post("http://localhost:3001/picUpload", formData, {
 			params: {
@@ -152,21 +154,15 @@ async function uploadCroppedImage() {
 			},
 		});
 		
-		const { status, fileName } = res.data;
+		const { status } = res.data;
 		console.log(`status: ${status}`);
-		console.log(`fileName: ${fileName}`);
-
-		// TODO: set the cropping box to the moon_position
-		const moon_position = await detectMoon(fileName);
-		console.log(`moon_position: ${JSON.stringify(moon_position)}`);
-
+		
 		data.message = status;
 
 	} catch (err) {
-		message = err;
+		data.message = err;
 	}
 }
-
 </script>
 
 <!-- eslint-disable prettier/prettier -->
@@ -181,7 +177,7 @@ async function uploadCroppedImage() {
 				<input type="file" ref="lunarImage" @change="onFileChange" />
 				<br>
 				<br>
-				<cropper class="resize" ref="cropper" v-if="data.showCropper" :src="data.imageDataUrl" 				
+				<cropper class="resize" ref="cropr" v-if="data.showCropper" :src="data.imageDataUrl" 				
 				:zoomOnWheel = "false"
 				:zoomable = "false"
 				:zoomOnTouch = "false"
@@ -231,7 +227,7 @@ async function uploadCroppedImage() {
 										</div>
 									</div>
 									<div class="column is-one-fifth">
-										Migrated to Composition API.	<div class="field">
+							<div class="field">
 											<label class="label">
 												Altitude 
 											</label>
@@ -314,12 +310,12 @@ async function uploadCroppedImage() {
 .resize {
 	border: 10px solid;
 	border-color: teal;
-
 	object-fit: fill;
 }
 
 .txt {
 	color: white;
+	/*font-family: monospace;*/
 }
 
 .ins {
@@ -397,8 +393,8 @@ async function uploadCroppedImage() {
 }
 
 .background {
-	/* background-color: black; */
-
+	/*background-color: black; 
+	*/
 	background-repeat: no-repeat;
 	background-image: url("moon_phases.jpg");
 	background-size: cover;

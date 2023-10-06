@@ -81,14 +81,6 @@
                         </div>
                       </div>
                     </div>
-                    <div class="col-lg-6 col-sm-6 col-6 column is-one-fifth">
-                      <div class="field">
-                        <label class="label"> Date </label>
-                        <div class="control">
-                          <input class="input" type="date" v-model="date" />
-                        </div>
-                      </div>
-                    </div>
                     <div class="column is-one-fifth">
                       <div class="field">
                         <label class="label"> Longitude </label>
@@ -98,6 +90,14 @@
                             type="number"
                             v-model="longitude"
                           />
+                        </div>
+                      </div>
+                    </div>
+					<div class="col-lg-6 col-sm-6 col-6 column is-one-fifth">
+                      <div class="field">
+                        <label class="label"> Date </label>
+                        <div class="control">
+                          <input class="input" type="date" v-model="date" />
                         </div>
                       </div>
                     </div>

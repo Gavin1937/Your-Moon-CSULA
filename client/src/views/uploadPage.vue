@@ -26,7 +26,7 @@ let data = reactive({
 
   //I think more appropriate name would be hasRequiredMetadata as exifReader is able to read tags for any image file
   hasExif: true,
-  maxFileSize: 30_000_000, //30MB max file size
+  maxFileSize: 30_000, //30MB max file size
   fileSizeExceeded: false,
   latitude: "",
   longitude: "",
@@ -41,6 +41,7 @@ let data = reactive({
   showCropper: false,
   croppedImage: null,
 });
+
 function onFileChange(e) {
   //TODO check that the file uploaded is a valid image file
   const files = e.target.files;
@@ -49,9 +50,9 @@ function onFileChange(e) {
     data.file = files[0];
     if (data.file.size <= data.maxFileSize) {
       data.fileSizeExceeded = false;
+      data.message = "";
       const reader = new FileReader();
       updateMetaData();
-      checkForMissingMetaData();
       reader.onload = (e) => {
         data.imageDataUrl = e.target.result;
         data.showCropper = true;
@@ -67,28 +68,6 @@ function onFileChange(e) {
   }
 }
 
-async function checkForMissingMetaData() {
-  try {
-    const tags = await ExifReader.load(data.file);
-    // const requiredMetaData = [tags.GPSLatitudeRef, tags.GPSLongitudeRef, tags.GPSLatitudeRef, tags.]
-    if (
-      tags.GPSLatitude &&
-      tags.GPSLongitude &&
-      tags.Altitude &&
-      tags.DateTimeOriginal &&
-      tags.Make &&
-      tags.Model
-    ) {
-      data.hasExif = true;
-    } else {
-      data.hasExif = false;
-      data.message =
-        "Missing some required metadata, please input them manually";
-    }
-  } catch (error) {
-    console.log(error);
-  }
-}
 // Credit goes to Youssef El-zein.
 //This is modified code from his work on the MoonTrek site.
 async function updateMetaData() {
@@ -204,9 +183,12 @@ async function uploadCroppedImage() {
         <input
           type="file"
           ref="lunarImage"
-          accept="images/*"
+          accept="image/*"
           @change="onFileChange"
         />
+        <div v-if="data.fileSizeExceeded" id="status-message">
+          {{ data.message }}
+        </div>
         <br />
         <br />
         <cropper

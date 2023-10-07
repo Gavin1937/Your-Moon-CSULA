@@ -15,7 +15,7 @@ import {ref, reactive} from "vue";
 import MoonRegistration from '../moon-registration';
 
 
-//This is the ref to the cropper DOM element
+// This is the ref to the cropper DOM element
 const cropr = ref(null);
 
 let data = reactive({
@@ -29,6 +29,8 @@ let data = reactive({
 	longitude : '',
 	altitude : '',
 	timeStamp : '',
+	// Data retrieved from RunMoonDetect()
+	moon_position : null,
 	// Tracks date input if there isn't meta data
 	date : '',
 	// Tracks time input if there isn't meta data
@@ -38,8 +40,45 @@ let data = reactive({
 	showCropper : false,
 	croppedImage : null,
 })
-function onFileChange(e) {
-	//TODO check that the file uploaded is a valid image file
+
+function getScaledCropData(){
+	// Gets cropBoxData and scales it up to the scale of the original image.
+	try{
+		const canvasWidth = cropr.value.getCanvasData().width;
+		const canvasNaturalWidth = cropr.value.getCanvasData().naturalWidth;
+		const {left, top, width, height} = cropr.value.getCropBoxData();
+		// The crop box x, y, width and height are all scaled from the canvas scale to the original image scale.
+		return {
+			x:left*canvasNaturalWidth/canvasWidth,
+			y:top*canvasNaturalWidth/canvasWidth,
+			width: width*canvasNaturalWidth/canvasWidth,
+			height: height*canvasNaturalWidth/canvasWidth,
+		};
+	} catch (error) {
+		console.log(error)
+	}
+}
+async function onCropperReady() {
+	try{
+	console.log(data.moon_position.x)
+	// The Cropper canvas scales down so the crop box needs to compensate for the scale.
+	// naturalWidth and naturalHeight are the original dimensions of the image.
+	// The width and height both scale equally so only width will be used.
+	const {width, naturalWidth} = cropr.value.getCanvasData();
+	// left, top, width and height are all scaled by width/naturalWidth.
+	const initialCropData = {
+			left: data.moon_position.x*width/naturalWidth,
+			top: data.moon_position.y*width/naturalWidth,
+			width: data.moon_position.width*width/naturalWidth,
+			height: data.moon_position.width*width/naturalWidth,
+	};
+	cropr.value.setCropBoxData(initialCropData);
+	} catch (error) {
+		console.log(error)
+	}
+}
+async function onFileChange(e) {
+	// TODO check that the file uploaded is a valid image file
 	const files = e.target.files;
 	
 	if (files.length > 0) {
@@ -47,24 +86,25 @@ function onFileChange(e) {
 		data.file = files[0];
 		
 		const reader = new FileReader();
-		updateMetaData();
+
+
 		reader.onload = (e) => {
 			data.imageDataUrl = e.target.result;
 			data.showCropper = true;
 			data.croppedImage = true;
+
 		};
+		RunDetectMoon(data.file)
 		reader.readAsDataURL(data.file);
-		// TODO: set the cropping box to the moon_position
-		RunDetectMoon(data.file);
+
 	}
 }
 
 // Credit goes to Youssef El-zein. 
-//This is modified code from his work on the MoonTrek site.
+// This is modified code from his work on the MoonTrek site.
 async function updateMetaData(){
 	try{
 		const tags = await ExifReader.load(data.file);
-		//console.log(tags);
 
 		// If so, keep imageData.hasExif true
 		data.hasExif = true;
@@ -131,8 +171,11 @@ async function RunDetectMoon(_fileObject, _type="square") {
 	}
 }
 async function onMoonPositionUpdate(new_position) {
-			// TODO: set the cropping box to the moon_position
 			console.log('moon_position:', new_position);
+			if(new_position.type == "square"){
+				data.moon_position = {x:new_position.x, y:new_position.y, width:new_position.width}
+				console.log(data.moon_position)
+			}
 }
 // function that gets the cropped image and sends it to server-side
 async function uploadCroppedImage() {
@@ -177,11 +220,16 @@ async function uploadCroppedImage() {
 				<input type="file" ref="lunarImage" @change="onFileChange" />
 				<br>
 				<br>
-				<cropper class="resize" ref="cropr" v-if="data.showCropper" :src="data.imageDataUrl" 				
+				<cropper class="resize" ref="cropr" v-if="data.showCropper && data.moon_position" :src="data.imageDataUrl" 				
 				:zoomOnWheel = "false"
 				:zoomable = "false"
 				:zoomOnTouch = "false"
 				:movable = "false"
+				:viewMode = 3
+				:restore = false
+				:aspectRatio = 1
+				:scaleX = 1
+				:scaleY = 1
 				@ready="onCropperReady" />
 			</div>
 

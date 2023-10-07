@@ -13,6 +13,7 @@ import axios from "axios";
 import ExifReader from 'exifreader';
 import {ref, reactive} from "vue";
 import MoonRegistration from '../moon-registration';
+import config from '../../config/config.json'
 
 
 // This is the ref to the cropper DOM element
@@ -188,7 +189,7 @@ async function uploadCroppedImage() {
 		const formData = new FormData();
 		formData.append("lunarImage", imgFile, '.jpg');
 		// make post request to upload image to database
-		const res = await axios.post("http://localhost:3001/picUpload", formData, {
+		const res = await axios.post(`${config.backend_url}/api/picUpload`, formData, {
 			params: {
 				latitude: data.latitude,
 				longitude: data.longitude,

@@ -1,3 +1,9 @@
+let config = null;
+if (process.env.ENVIRONMENT_TYPE === "production") {
+	config = require("./config/production.config.json");
+} else {
+	config = require("./config/dev.config.json");
+}
 const express = require("express");
 const app = express();
 const mysql = require("mysql");
@@ -8,7 +14,6 @@ const multer = require("multer");
 const cors = require("cors");
 const sharp = require("sharp");
 const { error } = require("console");
-const port = 3001;
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -21,14 +26,7 @@ app.use(cors());
 
 // Setting up connection (Currently, it's set up to our own localhost. There is no server as of now.)
 // Currently, you would have to create your own database called 'lunarimages' in MySQL
-const db = mysql.createPool({
-	connectionLimit: 10,
-	host: "localhost",
-	port: 3306,
-	user: "root",
-	password: "",
-	database: "lunarimages",
-});
+const db = mysql.createPool(config.db);
 
 // file system
 const storeImg = multer.diskStorage({
@@ -54,7 +52,7 @@ const isImg = (req, file, cb) => {
 // multer is a library that allows for image storing
 const upload = multer({ storage: storeImg, fileFilter: isImg });
 
-app.post("/picUpload", upload.single("lunarImage"), (req, res) => {
+app.post("/api/picUpload", upload.single("lunarImage"), (req, res) => {
 	try {
 		const imgFile = req.file;	// gets the file that is uploaded from the client
 		console.log(imgFile);	// testing purposes to see some info of the file
@@ -116,7 +114,7 @@ app.post("/picUpload", upload.single("lunarImage"), (req, res) => {
 });
 
 // this is a test route to see if it displays image from the server
-app.get("/displayImage/:id", (req, res) => {
+app.get("/api/displayImage/:id", (req, res) => {
 	try {
 		const id = req.params.id; // req.params gives information from the route (in this case, 'id' is part of the route)
 
@@ -155,6 +153,6 @@ app.get("/displayImage/:id", (req, res) => {
 });
 
 // running on port 3001 currently
-app.listen(port, () => {
-	console.log(`Running on Port ${port}`);
+app.listen(config.app_port, () => {
+	console.log(`Running on Port ${config.app_port}`);
 });

@@ -3,7 +3,6 @@
 
 # folders
 /**/node_modules
-/**/uploadedImages
 /**/.vscode
 /**/__pycache__
 /**/.venv

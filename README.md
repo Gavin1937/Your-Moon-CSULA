@@ -1,6 +1,6 @@
 CLIENT (YourMoon)
 =================================================
-# client
+# frontend-client
  - note that there are currently two folders named 'client'
  - so, you need to cd into the inner 'client' folder
  - run the command 'npm install' to install the necessary node packages
@@ -8,7 +8,7 @@ CLIENT (YourMoon)
 
 SERVER
 =================================================
-# server (server-side)
+# backend-server
  - run the command 'npm install' to install to necessary node packages
  - once the packages have been installed, run the command 'npm run devStart' to start the server
  - for testing purposes, the link to the server is 'localhost:3001'

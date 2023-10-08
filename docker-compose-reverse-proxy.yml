@@ -1,0 +1,33 @@
+version: "3"
+services:
+  
+  your-moon-server:
+    build:
+      context: server/
+      args:
+        BACKEND_URL: ${BACKEND_URL}
+    image: your-moon-server
+    container_name: your-moon-server
+    restart: unless-stopped
+    volumes:
+      - "./data/server/config:/src/config"
+      - "./data/server/uploadedImages:/src/uploadedImages"
+  
+  your-moon-client:
+    build:
+      context: client/
+    image: your-moon-client
+    container_name: your-moon-client
+    restart: unless-stopped
+  
+  your-moon-nginx:
+    image: nginx:alpine
+    container_name: your-moon-nginx
+    restart: unless-stopped
+    ports:
+      - ${APP_PORT}:80
+    depends_on:
+      - your-moon-server
+      - your-moon-client
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf

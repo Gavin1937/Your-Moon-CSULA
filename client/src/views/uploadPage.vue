@@ -11,7 +11,7 @@ import Cropper from 'vue-cropperjs';
 import 'cropperjs/dist/cropper.css';
 import axios from "axios";
 import ExifReader from 'exifreader';
-import {ref, reactive} from "vue";
+import { ref, reactive } from "vue";
 import MoonRegistration from '../moon-registration';
 
 
@@ -20,59 +20,59 @@ const cropr = ref(null);
 
 let data = reactive({
 	// "META DATA"
-	image : '',
+	image: '',
 	// Message for displaying success or failure when uploading
-	message : '',
+	message: '',
 	// Tracks if image has meta data
-	hasExif : true,
-	latitude : '',
-	longitude : '',
-	altitude : '',
-	timeStamp : '',
+	hasExif: true,
+	latitude: '',
+	longitude: '',
+	altitude: '',
+	timeStamp: '',
 	// Data retrieved from RunMoonDetect()
-	moon_position : null,
+	moon_position: null,
 	// Tracks date input if there isn't meta data
-	date : '',
+	date: '',
 	// Tracks time input if there isn't meta data
-	time : '',
-	file : null,
-	imageDataUrl : null,
-	showCropper : false,
-	croppedImage : null,
+	time: '',
+	file: null,
+	imageDataUrl: null,
+	showCropper: false,
+	croppedImage: null,
 })
 
-function getScaledCropData(){
+function getScaledCropData() {
 	// Gets cropBoxData and scales it up to the scale of the original image.
-	try{
+	try {
 		const canvasWidth = cropr.value.getCanvasData().width;
 		const canvasNaturalWidth = cropr.value.getCanvasData().naturalWidth;
-		const {left, top, width, height} = cropr.value.getCropBoxData();
+		const { left, top, width, height } = cropr.value.getCropBoxData();
 		// The crop box x, y, width and height are all scaled from the canvas scale to the original image scale.
 		return {
-			x:left*canvasNaturalWidth/canvasWidth,
-			y:top*canvasNaturalWidth/canvasWidth,
-			width: width*canvasNaturalWidth/canvasWidth,
-			height: height*canvasNaturalWidth/canvasWidth,
+			x: left * canvasNaturalWidth / canvasWidth,
+			y: top * canvasNaturalWidth / canvasWidth,
+			width: width * canvasNaturalWidth / canvasWidth,
+			height: height * canvasNaturalWidth / canvasWidth,
 		};
 	} catch (error) {
 		console.log(error)
 	}
 }
 async function onCropperReady() {
-	try{
-	console.log(data.moon_position.x)
-	// The Cropper canvas scales down so the crop box needs to compensate for the scale.
-	// naturalWidth and naturalHeight are the original dimensions of the image.
-	// The width and height both scale equally so only width will be used.
-	const {width, naturalWidth} = cropr.value.getCanvasData();
-	// left, top, width and height are all scaled by width/naturalWidth.
-	const initialCropData = {
-			left: data.moon_position.x*width/naturalWidth,
-			top: data.moon_position.y*width/naturalWidth,
-			width: data.moon_position.width*width/naturalWidth,
-			height: data.moon_position.width*width/naturalWidth,
-	};
-	cropr.value.setCropBoxData(initialCropData);
+	try {
+		console.log(data.moon_position.x)
+		// The Cropper canvas scales down so the crop box needs to compensate for the scale.
+		// naturalWidth and naturalHeight are the original dimensions of the image.
+		// The width and height both scale equally so only width will be used.
+		const { width, naturalWidth } = cropr.value.getCanvasData();
+		// left, top, width and height are all scaled by width/naturalWidth.
+		const initialCropData = {
+			left: data.moon_position.x * width / naturalWidth,
+			top: data.moon_position.y * width / naturalWidth,
+			width: data.moon_position.width * width / naturalWidth,
+			height: data.moon_position.width * width / naturalWidth,
+		};
+		cropr.value.setCropBoxData(initialCropData);
 	} catch (error) {
 		console.log(error)
 	}
@@ -80,11 +80,11 @@ async function onCropperReady() {
 async function onFileChange(e) {
 	// TODO check that the file uploaded is a valid image file
 	const files = e.target.files;
-	
+
 	if (files.length > 0) {
-		
+
 		data.file = files[0];
-		
+
 		const reader = new FileReader();
 
 
@@ -102,14 +102,14 @@ async function onFileChange(e) {
 
 // Credit goes to Youssef El-zein. 
 // This is modified code from his work on the MoonTrek site.
-async function updateMetaData(){
-	try{
+async function updateMetaData() {
+	try {
 		const tags = await ExifReader.load(data.file);
 
 		// If so, keep imageData.hasExif true
 		data.hasExif = true;
 		// Set the date
-		if(tags.GPSLongitude && tags.GPSLatitude){
+		if (tags.GPSLongitude && tags.GPSLatitude) {
 			// Keep all North latitude values positive
 			// and make South latitude values negative
 			if (tags.GPSLatitudeRef.value[0] === 'N') {
@@ -126,10 +126,10 @@ async function updateMetaData(){
 				data.longitude = -1 * tags.GPSLongitude.description;
 			}
 		}
-		if(tags.GPSAltitude){
+		if (tags.GPSAltitude) {
 			data.altitude = tags.GPSAltitude.description;
 		}
-		if(tags.DateTimeOriginal){
+		if (tags.DateTimeOriginal) {
 			// Get datetime in YYYY:MM:DD HH:MM:SS
 			const imageDate = tags.DateTimeOriginal.description
 			//Split time and date
@@ -141,7 +141,7 @@ async function updateMetaData(){
 			data.date = temp_date;
 			data.time = timePart;
 		}
-		if(tags.Make && tags.Model){
+		if (tags.Make && tags.Model) {
 			//As of now this only captures camera make and model
 			data.make = tags.Make.description;
 			data.model = tags.Model.description;
@@ -163,7 +163,7 @@ async function updateMetaData(){
 //                    If _type === 'rectangle'
 //                    return: { "type": "rectangle", "x1": int, "y1": int, "x2": int, "y2": int }
 //   * returns from MoonDetection() will be receive & process by this.onMoonPositionUpdatse()
-async function RunDetectMoon(_fileObject, _type="square") {
+async function RunDetectMoon(_fileObject, _type = "square") {
 	try {
 		MoonRegistration.MoonDetection(_fileObject, _type, onMoonPositionUpdate)
 	} catch (err) {
@@ -171,11 +171,11 @@ async function RunDetectMoon(_fileObject, _type="square") {
 	}
 }
 async function onMoonPositionUpdate(new_position) {
-			console.log('moon_position:', new_position);
-			if(new_position.type == "square"){
-				data.moon_position = {x:new_position.x, y:new_position.y, width:new_position.width}
-				console.log(data.moon_position)
-			}
+	console.log('moon_position:', new_position);
+	if (new_position.type == "square") {
+		data.moon_position = { x: new_position.x, y: new_position.y, width: new_position.width }
+		console.log(data.moon_position)
+	}
 }
 // function that gets the cropped image and sends it to server-side
 async function uploadCroppedImage() {
@@ -196,10 +196,10 @@ async function uploadCroppedImage() {
 				date: data.date,
 			},
 		});
-		
+
 		const { status } = res.data;
 		console.log(`status: ${status}`);
-		
+
 		data.message = status;
 
 	} catch (err) {
@@ -220,36 +220,36 @@ async function uploadCroppedImage() {
 				<input type="file" ref="lunarImage" @change="onFileChange" />
 				<br>
 				<br>
-				<cropper class="resize" ref="cropr" v-if="data.showCropper && data.moon_position" :src="data.imageDataUrl" 				
-				:zoomOnWheel = "false"
+				<cropper class="resize" ref="cropr" v-if="data.showCropper && data.moon_position" :src="data.imageDataUrl"
+					:zoomOnWheel = "false"
 				:zoomable = "false"
 				:zoomOnTouch = "false"
 				:movable = "false"
 				:viewMode = 3
 				:restore = false
-				:aspectRatio = 1
+					:aspectRatio = 1
 				:scaleX = 1
 				:scaleY = 1
 				@ready="onCropperReady" />
 			</div>
 
-		<div v-if="data.croppedImage">
-			<div class="cent">
-				<div id="image-upload">
-					<form @submit.prevent="onSubmit" enctype="multipart/form-data">
-						<div class="field">
-							<div class="file is-centered">
-								<label class="file-label">
-									<!-- <input class="file-input" type="file" ref="lunarImage" @change="onSelect" /> add back to code-->
-									<span class="file-cta">
-										<span class="file-icon">
-											<font-awesome-icon icon="fa-solid fa-file-arrow-up" />
-										</span>
+			<div v-if="data.croppedImage">
+				<div class="cent">
+					<div id="image-upload">
+						<form @submit.prevent="onSubmit" enctype="multipart/form-data">
+							<div class="field">
+								<div class="file is-centered">
+									<label class="file-label">
+										<!-- <input class="file-input" type="file" ref="lunarImage" @change="onSelect" /> add back to code-->
+										<span class="file-cta">
+											<span class="file-icon">
+												<font-awesome-icon icon="fa-solid fa-file-arrow-up" />
+											</span>
 
-									</span>
-								</label>
+										</span>
+									</label>
+								</div>
 							</div>
-						</div>
 
 							<!-- this portion only shows up if the image has no EXIF data attached to it : v-if="!hasExif"-->
 							<div id="manual-form" class="move">
@@ -260,7 +260,7 @@ async function uploadCroppedImage() {
 												Latitude
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="data.latitude" />
+												<input class="input" type="number" v-model="data.latitude" />
 											</div>
 										</div>
 									</div>
@@ -270,17 +270,17 @@ async function uploadCroppedImage() {
 												Longitude
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="data.longitude" />
+												<input class="input" type="number" v-model="data.longitude" />
 											</div>
 										</div>
 									</div>
 									<div class="column is-one-fifth">
-							<div class="field">
+										<div class="field">
 											<label class="label">
-												Altitude 
+												Altitude
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="data.altitude" />
+												<input class="input" type="number" v-model="data.altitude" />
 											</div>
 										</div>
 									</div>
@@ -353,8 +353,9 @@ async function uploadCroppedImage() {
 <!-- eslint-disable prettier/prettier -->
 <style>
 .move {
-  margin-left: 5px;
+	margin-left: 5px;
 }
+
 .resize {
 	border: 10px solid;
 	border-color: teal;
@@ -367,84 +368,85 @@ async function uploadCroppedImage() {
 }
 
 .ins {
-  padding-top: 1%;
+	padding-top: 1%;
 }
 
 .padding1 {
-  padding-left: 1%;
+	padding-left: 1%;
 }
 
 .up1 {
-  padding-top: 2%;
+	padding-top: 2%;
 }
 
 .container {
-  display: flex;
-  max-width: 800px;
-  margin: 0 auto;
+	display: flex;
+	max-width: 800px;
+	margin: 0 auto;
 }
 
 @media (min-width: 180px) and (max-width: 900px) {
-  .container {
-    /* flex-wrap: wrap; */
-    flex-direction: column;
-  }
+	.container {
+		/* flex-wrap: wrap; */
+		flex-direction: column;
+	}
 }
+
 .preview {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
+	margin-top: 20px;
+	display: flex;
+	justify-content: center;
 }
 
 .preview img {
-  max-width: 100%;
+	max-width: 100%;
 }
 
 .crop {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
+	margin-top: 20px;
+	display: flex;
+	justify-content: center;
 }
 
 .crop button {
-  padding: 10px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
+	padding: 10px;
+	background-color: #4caf50;
+	color: white;
+	border: none;
+	cursor: pointer;
+	font-size: 16px;
 }
 
 .crop button:hover {
-  background-color: #3e8e41;
+	background-color: #3e8e41;
 }
 
 .submit {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
+	margin-top: 20px;
+	display: flex;
+	justify-content: center;
 }
 
 .submit input[type="submit"] {
-  padding: 10px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
+	padding: 10px;
+	background-color: #4CAF50;
+	color: white;
+	border: none;
+	cursor: pointer;
+	font-size: 16px;
 }
 
 .submit input[type="submit"]:hover {
-  background-color: #ffff
+	background-color: #ffff
 }
 
 .colo1 {
-  color: white;
+	color: white;
 }
 
 .cent {
-  padding-left: 2.5%;
-  padding-top: 1%;
+	padding-left: 2.5%;
+	padding-top: 1%;
 }
 
 .background {
@@ -461,24 +463,24 @@ async function uploadCroppedImage() {
 } */
 
 #image-upload #status-message {
-  font-size: 1.2rem;
-  color: chartreuse;
+	font-size: 1.2rem;
+	color: chartreuse;
 }
 
 #image-upload label {
-  font-size: 1.2rem;
-  color: whitesmoke;
+	font-size: 1.2rem;
+	color: whitesmoke;
 }
 
 #image-upload #manual-form {
-  margin-top: 5rem;
-  margin-bottom: 3rem;
+	margin-top: 5rem;
+	margin-bottom: 3rem;
 }
 
 @media (min-width: 180px) and (max-width: 768px) {
-  #image-upload #manual-form {
-    margin-top: 0.5rem;
-	
-  }
+	#image-upload #manual-form {
+		margin-top: 0.5rem;
+
+	}
 }
 </style>

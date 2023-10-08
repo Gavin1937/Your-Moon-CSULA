@@ -5,13 +5,14 @@ services:
     build:
       context: server/
       args:
-        BACKEND_URL: ${BACKEND_URL}
+        BACKEND_URL: ""
     image: your-moon-server
     container_name: your-moon-server
     restart: unless-stopped
     volumes:
       - "./data/server/config:/src/config"
       - "./data/server/uploadedImages:/src/uploadedImages"
+      - "./data/server:/src/data"
   
   your-moon-client:
     build:

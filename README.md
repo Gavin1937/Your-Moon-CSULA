@@ -53,7 +53,7 @@ Assuming you are in the root directory of this repository
 * you have 2 options when deploying this application with docker-compose
   1. open frontend and backend in 2 separate ports
   2. only open one port, and use reverse proxy to route both frontend and backend
-* you only need to configure for `use reverse proxy` option
+* you only need to do following configurations for `use reverse proxy` option
    1. create a new file called `.env`
    2. and then add a new line in it: `APP_PORT=8080`
    3. this file will tell docker-compose which port to expose for the entire app
@@ -73,6 +73,20 @@ docker-compose -f .\docker-compose.yml up -d
 ```sh
 docker-compose -f .\docker-compose-reverse-proxy.yml up -d
 ```
+
+* **Note that you should rebuild docker images to avoid using old/outdated image**
+
+* rebuild for `2 separate ports` option
+```sh
+docker-compose -f .\docker-compose.yml build
+```
+
+* rebuild for `use reverse proxy` option
+
+```sh
+docker-compose -f .\docker-compose-reverse-proxy.yml build
+```
+
 
 ## Deploy individual components manually
 

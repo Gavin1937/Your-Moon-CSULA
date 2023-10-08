@@ -1,8 +1,10 @@
 # files
 /**/package-lock.json
 /**/*config.json
+/**/*.log
 
 # folders
+/data/
 /**/node_modules
 /**/.vscode
 /**/__pycache__

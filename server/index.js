@@ -1,5 +1,6 @@
+require('dotenv').config();
 let config = null;
-if (process.env.ENVIRONMENT_TYPE === "production") {
+if (process.env.NODE_ENV === "production") {
 	config = require("./config/production.config.json");
 } else {
 	config = require("./config/dev.config.json");
@@ -13,7 +14,8 @@ const fileUpload = require("express-fileupload");
 const multer = require("multer");
 const cors = require("cors");
 const sharp = require("sharp");
-const { error } = require("console");
+var logger = require('./logger.js')(config.log_file, config.log_level);
+
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -44,8 +46,8 @@ const isImg = (req, file, cb) => {
 	if (file.mimetype.startsWith("image")) {
 		cb(null, true);
 	} else {
-		console.log("NOT AN IMAGE!!!");
-		cb(null, error("ONLY image files are acceptable!"));
+		logger.error("NOT AN IMAGE!!!");
+		cb(null, logger.error("ONLY image files are acceptable!"));
 	}
 };
 
@@ -55,20 +57,19 @@ const upload = multer({ storage: storeImg, fileFilter: isImg });
 app.post("/api/picUpload", upload.single("lunarImage"), (req, res) => {
 	try {
 		const imgFile = req.file;	// gets the file that is uploaded from the client
-		console.log(imgFile);	// testing purposes to see some info of the file
+		logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
 
 		// testing purposes to see some info of the file
-		console.log("THIS IS THE req.body:");
-		console.log(req.body);
+		logger.debug(`req.body:\n${JSON.stringify(req.body, null, 2)}`);
 
 		// getting the inputted data from the client through destructuring
 		const { longitude, latitude, time, date } = req.query;
 
 		// testing purposes to see the data
-		console.log(`longitude: ${longitude}`);
-		console.log(`latitude: ${latitude}`);
-		console.log(`time: ${time}`);
-		console.log(`date: ${date}`);
+		logger.debug(`longitude: ${longitude}`);
+		logger.debug(`latitude: ${latitude}`);
+		logger.debug(`time: ${time}`);
+		logger.debug(`date: ${date}`);
 
 		// YOU CAN REMOVE THE COMMENTED CODE RIGHT BELOW
 		// 
@@ -79,9 +80,9 @@ app.post("/api/picUpload", upload.single("lunarImage"), (req, res) => {
     	const imageType = req.file.mimetype; // type of the image file
     	const path = req.file.path; // gets the buffer
 
-		console.log(`NAME: ${imageName}`);
-		console.log(`IMAGE TYPE: ${imageType}`);
-		console.log(`path: ${path}`);
+		logger.info(`NAME: ${imageName}`);
+		logger.info(`IMAGE TYPE: ${imageType}`);
+		logger.info(`path: ${path}`);
 
 		/*
 			updated SQL statement for now, you would have to create your own database and table on your
@@ -93,22 +94,28 @@ app.post("/api/picUpload", upload.single("lunarImage"), (req, res) => {
 		// query the SQL statement with the data and image file that the user provides from the client
 		db.query(sqlInsert, [imageName, imageType, path, longitude, latitude, time, date], (error, result) => {
 			if (error) {
-				console.log("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
-				throw error;
+				logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
+				logger.error(`error:\n${JSON.stringify(error, null, 2)}`);
+				res.status(500).json({
+					status: "UPLOAD FAILED ! ❌",
+					message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
+				});
 			}
-			console.log("Successfully inserted into the lunarimages database!");
-
-		});
-		console.log("IMAGE INSERTED SUCCESSFULLY!");
-		res.status(200).json({
-			status: "UPLOAD SUCCESSFUL ! ✔️",
-			fileName: imgFile.filename,
+			else {
+				logger.info("Successfully inserted into the lunarimages database!");
+				logger.info("IMAGE INSERTED SUCCESSFULLY!");
+				res.status(200).json({
+					status: "UPLOAD SUCCESSFUL ! ✔️",
+					fileName: imgFile.filename,
+				});
+			}
 		});
 	}
 	catch (error) {
+		logger.error(`Exception:\n${JSON.stringify(error, null, 2)}`);
 		res.status(500).json({
 			status: "UPLOAD FAILED ! ❌",
-			error,
+			message: "Internal Server Error",
 		});
 	}
 });
@@ -136,17 +143,15 @@ app.get("/api/displayImage/:id", (req, res) => {
 					// convert buffer object to base64-encoded string (base64 is text of binary data)   (ex. 01000001 01000010 01000011 -> QUJD)
 					const base64Image = buffer.toString("base64");
 					const imageSrc = `data:image;base64,${base64Image}`; //
-					// console.log(imageSrc);
-					// console.log("buffer: ", base64Image);
 					res.send(`<img src="${imageSrc}" />`); // displays the image with an img tag
 				})
 				.catch((err) => {
-					console.error(err);
+					logger.error(err);
 					res.status(500).send("ThErE iS nO iMaGe To Be DiSpLaYeD!");
 				});
 		});
 	} catch (error) {
-		console.log(error);
+		logger.error(error);
 	}
 
 
@@ -154,5 +159,9 @@ app.get("/api/displayImage/:id", (req, res) => {
 
 // running on port 3001 currently
 app.listen(config.app_port, () => {
-	console.log(`Running on Port ${config.app_port}`);
+	logger.info(`Start server on port: ${config.app_port}`);
 });
+
+// start up
+logger.info(`Logging Level: ${config.log_level}`);
+logger.info(`Save log file to: ${config.log_file}`);

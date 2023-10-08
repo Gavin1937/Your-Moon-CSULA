@@ -40,6 +40,7 @@ mkdir -p data/server/uploadedImages
 
 3. follow [backend client configuration document](./server/README.md#configure) to create all config file under `data/backend/config`
    * **Note that you should set the path of `log_file` to `/src/data/your-moon-server.log`, so server's log file can be put under `data/server`**
+   * **Also Note that docker container will only accept `production.config.json` file, so be sure you create the right one**
    * You can use [./server/config/production.config.json.docker](./server/config/production.config.json.docker) as your starting point
 
 

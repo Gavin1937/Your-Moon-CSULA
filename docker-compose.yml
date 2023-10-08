@@ -5,13 +5,14 @@ services:
     build:
       context: server/
       args:
-        BACKEND_URL: ${BACKEND_URL}
+        BACKEND_URL: "http://localhost:3001"
     image: your-moon-server
     container_name: your-moon-server
     restart: unless-stopped
     volumes:
       - "./data/server/config:/src/config"
       - "./data/server/uploadedImages:/src/uploadedImages"
+      - "./data/server:/src/data"
     ports:
       - "3001:3001"
   

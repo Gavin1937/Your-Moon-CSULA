@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS Users(
     user_id             INT              AUTO_INCREMENT PRIMARY KEY NOT NULL,
     user_email          VARCHAR(256)     NOT NULL, -- encrypted email
     user_upload_count   INT              DEFAULT 0,
+    user_flag_count     INT              DEFAULT 0,
 );
 
 CREATE TABLE IF NOT EXISTS Instruments(
@@ -24,7 +25,7 @@ CREATE TABLE IF NOT EXISTS Images(
     img_name            VARCHAR(50)      NOT NULL,
     img_type            VARCHAR(50)      NOT NULL, -- MIME type
     img_uri             VARCHAR(256)     NOT NULL,
-    img_altitude        FLOAT            NOT NULL,
+    img_altitude        FLOAT            NOT NULL, -- unit meter
     img_longitude       FLOAT            NOT NULL,
     img_latitude        FLOAT            NOT NULL,
     img_timestamp       INT              NOT NULL, -- unix timestamp of image taken time

@@ -1,0 +1,12 @@
+# files
+*
+*.jpg
+*.jpeg
+*.png
+*.bmp
+
+# folders
+/*test*/
+./*/
+
+!.gitignore

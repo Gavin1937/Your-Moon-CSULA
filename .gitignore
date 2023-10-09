@@ -1,9 +1,12 @@
 # files
 /**/package-lock.json
+/**/*config.json
+/**/*.log
+.env
 
 # folders
 /**/node_modules
-/**/uploadedImages
 /**/.vscode
 /**/__pycache__
 /**/.venv
+/data

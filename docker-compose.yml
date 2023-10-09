@@ -1,0 +1,26 @@
+version: "3"
+services:
+  
+  your-moon-server:
+    build:
+      context: server/
+    image: your-moon-server
+    container_name: your-moon-server
+    restart: unless-stopped
+    volumes:
+      - "./data/server/config:/src/config"
+      - "./data/server/uploadedImages:/src/uploadedImages"
+      - "./data/server:/src/data"
+    ports:
+      - "3001:3001"
+  
+  your-moon-client:
+    build:
+      context: client/
+      args:
+        BACKEND_URL: ${BACKEND_URL}
+    image: your-moon-client
+    container_name: your-moon-client
+    restart: unless-stopped
+    ports:
+      - "5173:5173"

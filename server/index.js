@@ -1,3 +1,10 @@
+require('dotenv').config();
+let config = null;
+if (process.env.NODE_ENV === "production") {
+	config = require("./config/production.config.json");
+} else {
+	config = require("./config/dev.config.json");
+}
 const express = require("express");
 const app = express();
 const mysql = require("mysql");
@@ -7,8 +14,8 @@ const fileUpload = require("express-fileupload");
 const multer = require("multer");
 const cors = require("cors");
 const sharp = require("sharp");
-const { error } = require("console");
-const port = 3001;
+var logger = require('./logger.js')(config.log_file, config.log_level);
+
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -21,14 +28,7 @@ app.use(cors());
 
 // Setting up connection (Currently, it's set up to our own localhost. There is no server as of now.)
 // Currently, you would have to create your own database called 'lunarimages' in MySQL
-const db = mysql.createPool({
-	connectionLimit: 10,
-	host: "localhost",
-	port: 3306,
-	user: "root",
-	password: "",
-	database: "lunarimages",
-});
+const db = mysql.createPool(config.db);
 
 // file system
 const storeImg = multer.diskStorage({
@@ -46,31 +46,66 @@ const isImg = (req, file, cb) => {
 	if (file.mimetype.startsWith("image")) {
 		cb(null, true);
 	} else {
-		console.log("NOT AN IMAGE!!!");
-		cb(null, error("ONLY image files are acceptable!"));
+		logger.warn("NOT AN IMAGE!!!");
+		cb(null, logger.warn("ONLY image files are acceptable!"));
 	}
 };
 
 // multer is a library that allows for image storing
-const upload = multer({ storage: storeImg, fileFilter: isImg });
+const upload = multer({
+	storage: storeImg,
+	fileFilter: isImg,
+	limits: { fileSize: config.max_upload_size },
+});
 
-app.post("/picUpload", upload.single("lunarImage"), (req, res) => {
+function uploadHandler(next) { // outer function takes in "next" request handler
+	return function(req, res) { // returns a request handler uses "next" inside
+		upload.single("lunarImage")(req, res, function(error) { // MulterError handler function
+			if (error && error.code == 'LIMIT_FILE_SIZE' || req.file.size > config.max_upload_size) {
+				logger.warn("IMAGE IS TOO BIG!");
+				res.status(413).json({
+					status: "UPLOAD FAILED ! ❌",
+					message: `IMAGE IS TOO BIG!, UPLOAD LIMIT IS: ${config.max_upload_size}`,
+				});
+			}
+			else {
+				if (!req.file) {
+					res.status(404).json({
+						status: "UPLOAD FAILED ! ❌",
+						message: "FILE NOT FOUND"
+					});
+				}
+				next(req, res); // calls "next" request handler if no error in Multer part
+			}
+		});
+	};
+}
+
+app.post("/api/picUpload", uploadHandler( (req, res) => { // pass upload & db handler as "next" function
 	try {
 		const imgFile = req.file;	// gets the file that is uploaded from the client
-		console.log(imgFile);	// testing purposes to see some info of the file
-
+		logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
+		
+		// additional size check
+		if (imgFile.size > config.max_upload_size) {
+			logger.warn("IMAGE IS TOO BIG!");
+			res.status(413).json({
+				status: "UPLOAD FAILED ! ❌",
+				message: `IMAGE IS TOO BIG!, UPLOAD LIMIT IS: ${config.max_upload_size}`,
+			});
+		}
+		
 		// testing purposes to see some info of the file
-		console.log("THIS IS THE req.body:");
-		console.log(req.body);
+		logger.debug(`req.body:\n${JSON.stringify(req.body, null, 2)}`);
 
 		// getting the inputted data from the client through destructuring
 		const { longitude, latitude, time, date } = req.query;
 
 		// testing purposes to see the data
-		console.log(`longitude: ${longitude}`);
-		console.log(`latitude: ${latitude}`);
-		console.log(`time: ${time}`);
-		console.log(`date: ${date}`);
+		logger.debug(`longitude: ${longitude}`);
+		logger.debug(`latitude: ${latitude}`);
+		logger.debug(`time: ${time}`);
+		logger.debug(`date: ${date}`);
 
 		// YOU CAN REMOVE THE COMMENTED CODE RIGHT BELOW
 		// 
@@ -81,9 +116,9 @@ app.post("/picUpload", upload.single("lunarImage"), (req, res) => {
     	const imageType = req.file.mimetype; // type of the image file
     	const path = req.file.path; // gets the buffer
 
-		console.log(`NAME: ${imageName}`);
-		console.log(`IMAGE TYPE: ${imageType}`);
-		console.log(`path: ${path}`);
+		logger.info(`NAME: ${imageName}`);
+		logger.info(`IMAGE TYPE: ${imageType}`);
+		logger.info(`path: ${path}`);
 
 		/*
 			updated SQL statement for now, you would have to create your own database and table on your
@@ -95,28 +130,34 @@ app.post("/picUpload", upload.single("lunarImage"), (req, res) => {
 		// query the SQL statement with the data and image file that the user provides from the client
 		db.query(sqlInsert, [imageName, imageType, path, longitude, latitude, time, date], (error, result) => {
 			if (error) {
-				console.log("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
-				throw error;
+				logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
+				logger.error(`error:\n${JSON.stringify(error, null, 2)}`);
+				res.status(500).json({
+					status: "UPLOAD FAILED ! ❌",
+					message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
+				});
 			}
-			console.log("Successfully inserted into the lunarimages database!");
-
-		});
-		console.log("IMAGE INSERTED SUCCESSFULLY!");
-		res.status(200).json({
-			status: "UPLOAD SUCCESSFUL ! ✔️",
-			fileName: imgFile.filename,
+			else {
+				logger.info("Successfully inserted into the lunarimages database!");
+				logger.info("IMAGE INSERTED SUCCESSFULLY!");
+				res.status(200).json({
+					status: "UPLOAD SUCCESSFUL ! ✔️",
+					fileName: imgFile.filename,
+				});
+			}
 		});
 	}
 	catch (error) {
+		logger.error(`Exception:\n${JSON.stringify(error, null, 2)}`);
 		res.status(500).json({
 			status: "UPLOAD FAILED ! ❌",
-			error,
+			message: "Internal Server Error",
 		});
 	}
-});
+}));
 
 // this is a test route to see if it displays image from the server
-app.get("/displayImage/:id", (req, res) => {
+app.get("/api/displayImage/:id", (req, res) => {
 	try {
 		const id = req.params.id; // req.params gives information from the route (in this case, 'id' is part of the route)
 
@@ -138,23 +179,25 @@ app.get("/displayImage/:id", (req, res) => {
 					// convert buffer object to base64-encoded string (base64 is text of binary data)   (ex. 01000001 01000010 01000011 -> QUJD)
 					const base64Image = buffer.toString("base64");
 					const imageSrc = `data:image;base64,${base64Image}`; //
-					// console.log(imageSrc);
-					// console.log("buffer: ", base64Image);
 					res.send(`<img src="${imageSrc}" />`); // displays the image with an img tag
 				})
 				.catch((err) => {
-					console.error(err);
+					logger.error(err);
 					res.status(500).send("ThErE iS nO iMaGe To Be DiSpLaYeD!");
 				});
 		});
 	} catch (error) {
-		console.log(error);
+		logger.error(error);
 	}
 
 
 });
 
 // running on port 3001 currently
-app.listen(port, () => {
-	console.log(`Running on Port ${port}`);
+app.listen(config.app_port, () => {
+	logger.info(`Start server on port: ${config.app_port}`);
 });
+
+// start up
+logger.info(`Logging Level: ${config.log_level}`);
+logger.info(`Save log file to: ${config.log_file}`);

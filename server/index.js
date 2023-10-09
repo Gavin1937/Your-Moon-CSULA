@@ -61,7 +61,7 @@ const upload = multer({
 function uploadHandler(next) { // outer function takes in "next" request handler
 	return function(req, res) { // returns a request handler uses "next" inside
 		upload.single("lunarImage")(req, res, function(error) { // MulterError handler function
-			if (error && error.code == 'LIMIT_FILE_SIZE') {
+			if (error && error.code == 'LIMIT_FILE_SIZE' || req.file.size > config.max_upload_size) {
 				logger.warn("IMAGE IS TOO BIG!");
 				res.status(413).json({
 					status: "UPLOAD FAILED ! ❌",
@@ -85,7 +85,16 @@ app.post("/api/picUpload", uploadHandler( (req, res) => { // pass upload & db ha
 	try {
 		const imgFile = req.file;	// gets the file that is uploaded from the client
 		logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
-
+		
+		// additional size check
+		if (imgFile.size > config.max_upload_size) {
+			logger.warn("IMAGE IS TOO BIG!");
+			res.status(413).json({
+				status: "UPLOAD FAILED ! ❌",
+				message: `IMAGE IS TOO BIG!, UPLOAD LIMIT IS: ${config.max_upload_size}`,
+			});
+		}
+		
 		// testing purposes to see some info of the file
 		logger.debug(`req.body:\n${JSON.stringify(req.body, null, 2)}`);
 

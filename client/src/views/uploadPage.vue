@@ -13,8 +13,9 @@ import axios from "axios";
 import ExifReader from "exifreader";
 import { ref, reactive } from "vue";
 import MoonRegistration from "../moon-registration";
+import config from "../../config/config.json";
 
-//This is the ref to the cropper DOM element
+// This is the ref to the cropper DOM element
 const cropr = ref(null);
 
 let data = reactive({
@@ -23,15 +24,16 @@ let data = reactive({
   // Message for displaying success or failure when uploading
   message: "",
   // Tracks if image has meta data
-  isValidFileType: false,
-
   hasExif: true,
-  maxFileSize: 30 * 1024 * 1024, //30MB max file size
-  fileSizeExceeded: false,
   latitude: "",
   longitude: "",
   altitude: "",
   timeStamp: "",
+  isValidFileType: false,
+  maxFileSize: 30 * 1024 * 1024,
+  fileSizeExceeded: false,
+  // Data retrieved from RunMoonDetect()
+  moon_position: null,
   // Tracks date input if there isn't meta data
   date: "",
   // Tracks time input if there isn't meta data
@@ -42,79 +44,66 @@ let data = reactive({
   croppedImage: null,
 });
 
-function onFileChange(e) {
-  //TODO check that the file uploaded is a valid image file
+function getScaledCropData() {
+  // Gets cropBoxData and scales it up to the scale of the original image.
+  try {
+    const canvasWidth = cropr.value.getCanvasData().width;
+    const canvasNaturalWidth = cropr.value.getCanvasData().naturalWidth;
+    const { left, top, width, height } = cropr.value.getCropBoxData();
+    // The crop box x, y, width and height are all scaled from the canvas scale to the original image scale.
+    return {
+      x: (left * canvasNaturalWidth) / canvasWidth,
+      y: (top * canvasNaturalWidth) / canvasWidth,
+      width: (width * canvasNaturalWidth) / canvasWidth,
+      height: (height * canvasNaturalWidth) / canvasWidth,
+    };
+  } catch (error) {
+    console.log(error);
+  }
+}
+async function onCropperReady() {
+  try {
+    console.log(data.moon_position.x);
+    // The Cropper canvas scales down so the crop box needs to compensate for the scale.
+    // naturalWidth and naturalHeight are the original dimensions of the image.
+    // The width and height both scale equally so only width will be used.
+    const { width, naturalWidth } = cropr.value.getCanvasData();
+    // left, top, width and height are all scaled by width/naturalWidth.
+    const initialCropData = {
+      left: (data.moon_position.x * width) / naturalWidth,
+      top: (data.moon_position.y * width) / naturalWidth,
+      width: (data.moon_position.width * width) / naturalWidth,
+      height: (data.moon_position.width * width) / naturalWidth,
+    };
+    cropr.value.setCropBoxData(initialCropData);
+  } catch (error) {
+    console.log(error);
+  }
+}
+async function onFileChange(e) {
+  // TODO check that the file uploaded is a valid image file
   const files = e.target.files;
 
   if (files.length > 0) {
     data.file = files[0];
-    checkFileType(data.file);
-    //delays for 1s because that's about the time it takes for data.isValidFileType to be updated
-    setTimeout(() => {
-      if (data.isValidFileType) {
-        if (data.file.size <= data.maxFileSize) {
-          data.fileSizeExceeded = false;
-          data.message = "";
-          const reader = new FileReader();
-          updateMetaData();
-          reader.onload = (e) => {
-            data.imageDataUrl = e.target.result;
-            data.showCropper = true;
-            data.croppedImage = true;
-          };
-          reader.readAsDataURL(data.file);
-          // TODO: set the cropping box to the moon_position
-          RunDetectMoon(data.file);
-        } else {
-          data.fileSizeExceeded = true;
-          data.message = "Max upload file size of 30MB exceeded";
-        }
-      }
-    }, 1000);
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      data.imageDataUrl = e.target.result;
+      data.showCropper = true;
+      data.croppedImage = true;
+    };
+    RunDetectMoon(data.file);
+    reader.readAsDataURL(data.file);
   }
 }
 
-//checks bytes of file header to check file type because human readable MIME type can be manipulated
-function checkFileType(file) {
-  const reader = new FileReader();
-  let header = "";
-
-  reader.onload = (e) => {
-    let fileType = "";
-    let arr = new Uint8Array(e.target.result).subarray(0, 4);
-
-    for (let i = 0; i < arr.length; i++) {
-      header += arr[i].toString(16);
-    }
-
-    //hexadecimal representation of those file extensions references: https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
-    //https://en.wikipedia.org/wiki/List_of_file_signatures
-    if (header.includes("424d")) {
-      fileType = "bmp";
-    } else if (header.includes("ffd8ff")) {
-      fileType = "jpg";
-    } else if (header.includes("504e47")) {
-      fileType = "png";
-    } else if (header.includes("57454250")) {
-      fileType = "webp";
-    } else if (header.includes("002a") || header.includes("2a00")) {
-      fileType = "tiff";
-    } else {
-      fileType = "invalid";
-      data.message = "File type not accepted";
-    }
-
-    data.isValidFileType = fileType !== "invalid" ? true : false;
-  };
-  reader.readAsArrayBuffer(file);
-}
-
 // Credit goes to Youssef El-zein.
-//This is modified code from his work on the MoonTrek site.
+// This is modified code from his work on the MoonTrek site.
 async function updateMetaData() {
   try {
     const tags = await ExifReader.load(data.file);
-    console.log(tags);
 
     // If so, keep imageData.hasExif true
     data.hasExif = true;
@@ -181,8 +170,15 @@ async function RunDetectMoon(_fileObject, _type = "square") {
   }
 }
 async function onMoonPositionUpdate(new_position) {
-  // TODO: set the cropping box to the moon_position
   console.log("moon_position:", new_position);
+  if (new_position.type == "square") {
+    data.moon_position = {
+      x: new_position.x,
+      y: new_position.y,
+      width: new_position.width,
+    };
+    console.log(data.moon_position);
+  }
 }
 // function that gets the cropped image and sends it to server-side
 async function uploadCroppedImage() {
@@ -195,14 +191,18 @@ async function uploadCroppedImage() {
     const formData = new FormData();
     formData.append("lunarImage", imgFile, ".jpg");
     // make post request to upload image to database
-    const res = await axios.post("http://localhost:3001/picUpload", formData, {
-      params: {
-        latitude: data.latitude,
-        longitude: data.longitude,
-        time: data.time,
-        date: data.date,
-      },
-    });
+    const res = await axios.post(
+      `${config.backend_url}/api/picUpload`,
+      formData,
+      {
+        params: {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          time: data.time,
+          date: data.date,
+        },
+      }
+    );
 
     const { status } = res.data;
     console.log(`status: ${status}`);
@@ -221,30 +221,23 @@ async function uploadCroppedImage() {
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
-        <input
-          type="file"
-          ref="lunarImage"
-          accept=".jpg,.png,.tiff,.webp,.bmp"
-          @change="onFileChange"
-        />
-
-        <div
-          v-if="data.fileSizeExceeded || !data.isValidFileType"
-          class="status-message"
-        >
-          {{ data.message }}
-        </div>
+        <input type="file" ref="lunarImage" @change="onFileChange" />
         <br />
         <br />
         <cropper
           class="resize"
           ref="cropr"
-          v-if="data.showCropper"
+          v-if="data.showCropper && data.moon_position"
           :src="data.imageDataUrl"
           :zoomOnWheel="false"
           :zoomable="false"
           :zoomOnTouch="false"
           :movable="false"
+          :viewMode="3"
+          :restore="false"
+          :aspectRatio="1"
+          :scaleX="1"
+          :scaleY="1"
           @ready="onCropperReady"
         />
       </div>

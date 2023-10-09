@@ -1,68 +1,74 @@
-# upload-validation
+# Your-Moon Frontend client
 
-This template should help get you started developing with Vue 3 in Vite.
+## Configure
 
-## Recommended IDE Setup
+1. in folder `src/client/config`, create a new file called `config.json`
+2. add following configuration in it
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+```jsonc
+{
+    "backend_url": "http://localhost:3001" // full url to backend server, without trailing "/"
+}
+```
 
-## Type Support for `.vue` Imports in TS
+3. you can use `src/client/config/config.json.template` as your starting point
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin) to make the TypeScript language service aware of `.vue` types.
 
-If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
+## Deploy
 
-1. Disable the built-in TypeScript Extension
-    1) Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-    2) Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
-2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
+### Deploy with Docker (Recommended)
 
-## Customize configuration
+Assuming you are in folder `src/client`
 
-See [Vite Configuration Reference](https://vitejs.dev/config/).
+run following command to deploy with docker
 
-## Project Setup
+1. build the docker image
+
+```sh
+docker build -t your-moon-client --build-arg="BACKEND_URL=http://localhost:3001" .
+```
+
+2. **Note that you MUST supply parameter `--build-arg` so docker can build the application into distributable package with correct backend url**
+   * **Replace the value of `BACKEND_URL` with the url of your backend**
+
+3. then, run docker container with following command
+
+```sh
+docker run -it --rm --name your-moon-client -p 5173:5173 your-moon-client
+```
+
+### Deploy manually
+
+1. install all dependencies
 
 ```sh
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+2. build the frontend app
+
+```sh
+npm run build
+```
+
+3. install `serve` to serve the app
+
+```sh
+npm install serve
+```
+
+4. serve the app
+
+```sh
+serve -l tcp://127.0.0.1:5173 dist
+```
+
+5. you can also deploy client for development
 
 ```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+## Running Frontend
 
-```sh
-npm run build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
-
-### Run End-to-End Tests with [Cypress](https://www.cypress.io/)
-
-```sh
-npm run test:e2e:dev
-```
-
-This runs the end-to-end tests against the Vite development server.
-It is much faster than the production build.
-
-But it's still recommended to test the production build with `test:e2e` before deploying (e.g. in CI environments):
-
-```sh
-npm run build
-npm run test:e2e
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+Frontend is running on [http://localhost:5173](http://localhost:5173) by default

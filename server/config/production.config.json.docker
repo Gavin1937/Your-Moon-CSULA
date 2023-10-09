@@ -1,0 +1,15 @@
+{
+    "app_host": "localhost",
+    "app_port": 3001,
+    "max_upload_size": 31457280,
+    "log_file": "/src/data/your-moon-server.log",
+    "log_level": "info",
+    "db": {
+        "connectionLimit": 10,
+        "host": "localhost",
+        "port": 3306,
+        "user": "root",
+        "password": "",
+        "database": "lunarimages"
+    }
+}

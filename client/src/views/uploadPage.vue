@@ -44,6 +44,8 @@ let data = reactive({
   croppedImage: null,
 });
 
+
+
 function getScaledCropData() {
   // Gets cropBoxData and scales it up to the scale of the original image.
   try {
@@ -80,22 +82,71 @@ async function onCropperReady() {
     console.log(error);
   }
 }
+
+//checks bytes of file header to check file type because human readable MIME type can be manipulated
+function checkFileType(file) {
+  const reader = new FileReader();
+  let header = "";
+
+  reader.onload = (e) => {
+    let fileType = "";
+    let arr = new Uint8Array(e.target.result).subarray(0, 4);
+
+    for (let i = 0; i < arr.length; i++) {
+      header += arr[i].toString(16);
+    }
+
+    //hexadecimal representation of those file extensions references: https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
+    //https://en.wikipedia.org/wiki/List_of_file_signatures
+    if (header.includes("424d")) {
+      fileType = "bmp";
+    } else if (header.includes("ffd8ff")) {
+      fileType = "jpeg";
+    } else if (header.includes("504e47")) {
+      fileType = "png";
+    } else if (header.includes("57454250")) {
+      fileType = "webp";
+    } else if (header.includes("002a") || header.includes("2a00")) {
+      fileType = "tiff";
+    } else {
+      fileType = "invalid";
+      data.message = "File type not accepted";
+    }
+
+    data.isValidFileType = fileType !== "invalid" ? true : false;
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 async function onFileChange(e) {
   // TODO check that the file uploaded is a valid image file
   const files = e.target.files;
 
   if (files.length > 0) {
     data.file = files[0];
-
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      data.imageDataUrl = e.target.result;
-      data.showCropper = true;
-      data.croppedImage = true;
-    };
-    RunDetectMoon(data.file);
-    reader.readAsDataURL(data.file);
+    checkFileType(data.file);
+    //delays for .5s because that's about the time it takes for data.isValidFileType to be updated
+    setTimeout(() => {
+      if (data.isValidFileType) {
+        if (data.file.size <= data.maxFileSize) {
+          data.fileSizeExceeded = false;
+          data.message = "";
+          const reader = new FileReader();
+          updateMetaData();
+          reader.onload = (e) => {
+            data.imageDataUrl = e.target.result;
+            data.showCropper = true;
+            data.croppedImage = true;
+          };
+          reader.readAsDataURL(data.file);
+          // TODO: set the cropping box to the moon_position
+          RunDetectMoon(data.file);
+        } else {
+          data.fileSizeExceeded = true;
+          data.message = "Max upload file size of 30MB exceeded";
+        }
+      }
+    }, 500);
   }
 }
 
@@ -221,7 +272,7 @@ async function uploadCroppedImage() {
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
-        <input type="file" ref="lunarImage" @change="onFileChange" />
+        <input type="file" accept=".jpg,.png,.tiff,.bmp,.webp" ref="lunarImage" @change="onFileChange" />
         <br />
         <br />
         <cropper
@@ -241,7 +292,7 @@ async function uploadCroppedImage() {
           @ready="onCropperReady"
         />
       </div>
-
+      <div class="status-message" v-if="fileSizeExceeded || !isValidFileType">{{ data.message }}</div>
       <div v-if="data.croppedImage">
         <div class="cent">
           <div id="image-upload">

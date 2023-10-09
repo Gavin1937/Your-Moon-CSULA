@@ -26,6 +26,9 @@ let data = reactive({
 	message : '',
 	// Tracks if image has meta data
 	hasExif : true,
+	maxFileSize: 30 * 1024 * 1024, //max file size 30MB
+	fileSizeExceeded: false,
+	isValidFileType: false,
 	latitude : '',
 	longitude : '',
 	altitude : '',
@@ -78,27 +81,72 @@ async function onCropperReady() {
 		console.log(error)
 	}
 }
+
+//checks bytes of file header to check file type because human readable MIME type can be manipulated
+function checkFileType(file) {
+  const reader = new FileReader();
+  let header = "";
+
+  reader.onload = (e) => {
+    let fileType = "";
+    let arr = new Uint8Array(e.target.result).subarray(0, 4);
+
+    for (let i = 0; i < arr.length; i++) {
+      header += arr[i].toString(16);
+    }
+
+    //hexadecimal representation of those file extensions references: https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
+    //https://en.wikipedia.org/wiki/List_of_file_signatures
+    if (header.includes("424d")) {
+      fileType = "bmp";
+    } else if (header.includes("ffd8ff")) {
+      fileType = "jpg";
+    } else if (header.includes("504e47")) {
+      fileType = "png";
+    } else if (header.includes("57454250")) {
+      fileType = "webp";
+    } else if (header.includes("002a") || header.includes("2a00")) {
+      fileType = "tiff";
+    } else {
+      fileType = "invalid";
+      data.message = "File type not accepted";
+    }
+
+    data.isValidFileType = fileType !== "invalid" ? true : false;
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 async function onFileChange(e) {
 	// TODO check that the file uploaded is a valid image file
 	const files = e.target.files;
-	
+
 	if (files.length > 0) {
-		
-		data.file = files[0];
-		
-		const reader = new FileReader();
-
-
-		reader.onload = (e) => {
-			data.imageDataUrl = e.target.result;
-			data.showCropper = true;
-			data.croppedImage = true;
-
-		};
-		RunDetectMoon(data.file)
-		reader.readAsDataURL(data.file);
-
-	}
+    data.file = files[0];
+    checkFileType(data.file);
+    //delays for .5s because that's about the time it takes for data.isValidFileType to be updated
+    setTimeout(() => {
+      if (data.isValidFileType) {
+        if (data.file.size <= data.maxFileSize) {
+          data.fileSizeExceeded = false;
+          data.message = "";
+          const reader = new FileReader();
+          updateMetaData();
+          reader.onload = (e) => {
+            data.imageDataUrl = e.target.result;
+            data.showCropper = true;
+            data.croppedImage = true;
+          };
+          reader.readAsDataURL(data.file);
+          // TODO: set the cropping box to the moon_position
+          RunDetectMoon(data.file);
+        } else {
+          data.fileSizeExceeded = true;
+          data.message = "Max upload file size of 30MB exceeded";
+        }
+      }
+    }, 500);
+  }
 }
 
 // Credit goes to Youssef El-zein. 
@@ -128,7 +176,8 @@ async function updateMetaData(){
 			}
 		}
 		if(tags.GPSAltitude){
-			data.altitude = tags.GPSAltitude.description;
+			//.slice removes last 2 characters (blank space and m)
+			data.altitude = tags.GPSAltitude.description.slice(0,-2);
 		}
 		if(tags.DateTimeOriginal){
 			// Get datetime in YYYY:MM:DD HH:MM:SS
@@ -218,7 +267,7 @@ async function uploadCroppedImage() {
 					Upload and crop your image.
 				</h2>
 				<br>
-				<input type="file" ref="lunarImage" @change="onFileChange" />
+				<input type="file" accept=".jpg,.png,.webp,.tiff,.bmp,.jpeg" ref="lunarImage" @change="onFileChange" />
 				<br>
 				<br>
 				<cropper class="resize" ref="cropr" v-if="data.showCropper && data.moon_position" :src="data.imageDataUrl" 				
@@ -233,7 +282,9 @@ async function uploadCroppedImage() {
 				:scaleY = 1
 				@ready="onCropperReady" />
 			</div>
-
+		<div class="status-message" v-if="fileSizeExceeded || !isValidFileType">
+			{{ data.message }}
+		</div>
 		<div v-if="data.croppedImage">
 			<div class="cent">
 				<div id="image-upload">
@@ -336,7 +387,7 @@ async function uploadCroppedImage() {
 							</button> -->
 							</div>
 						</form>
-						<p id="status-message">
+						<p class="status-message">
 							{{ data.message }}
 						</p>
 					</div>
@@ -450,7 +501,7 @@ async function uploadCroppedImage() {
 }
 
 
-#image-upload #status-message {
+#image-upload, .status-message {
 	font-size: 1.2rem;
 	color: chartreuse;
 }

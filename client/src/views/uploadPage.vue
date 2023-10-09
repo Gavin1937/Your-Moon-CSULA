@@ -89,13 +89,13 @@ function checkFileType(file) {
 
   reader.onload = (e) => {
     let fileType = "";
-    let arr = new Uint8Array(e.target.result).subarray(0, 4);
+    let arr = new Uint8Array(e.target.result).subarray(0, 16);
 
     for (let i = 0; i < arr.length; i++) {
       header += arr[i].toString(16);
     }
 
-    //hexadecimal representation of those file extensions references: https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
+    //hexadecimal representation of those file extensions. References: https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
     //https://en.wikipedia.org/wiki/List_of_file_signatures
     if (header.includes("424d")) {
       fileType = "bmp";
@@ -103,7 +103,7 @@ function checkFileType(file) {
       fileType = "jpg";
     } else if (header.includes("504e47")) {
       fileType = "png";
-    } else if (header.includes("57454250")) {
+    } else if (header.includes("52494646") && header.includes("57454250")) {
       fileType = "webp";
     } else if (header.includes("002a") || header.includes("2a00")) {
       fileType = "tiff";

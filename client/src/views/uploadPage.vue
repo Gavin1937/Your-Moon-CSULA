@@ -265,7 +265,7 @@ async function uploadCroppedImage() {
 					Upload and crop your image.
 				</h2>
 				<br>
-				<input type="file" accept=".jpg,.png,.webp,.tiff,.bmp,.jpeg" ref="lunarImage" @change="onFileChange" />
+				<input type="file" accept=".jpg,.png,.webp,.bmp,.jpeg" ref="lunarImage" @change="onFileChange" />
 				<br>
 				<br>
 				<cropper class="resize" ref="cropr" v-if="data.showCropper && data.moon_position" :src="data.imageDataUrl" 				

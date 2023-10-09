@@ -105,8 +105,6 @@ function checkFileType(file) {
       fileType = "png";
     } else if (header.includes("52494646") && header.includes("57454250")) {
       fileType = "webp";
-    } else if (header.includes("002a") || header.includes("2a00")) {
-      fileType = "tiff";
     } else {
       fileType = "invalid";
       data.message = "File type not accepted";

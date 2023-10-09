@@ -46,15 +46,42 @@ const isImg = (req, file, cb) => {
 	if (file.mimetype.startsWith("image")) {
 		cb(null, true);
 	} else {
-		logger.error("NOT AN IMAGE!!!");
-		cb(null, logger.error("ONLY image files are acceptable!"));
+		logger.warn("NOT AN IMAGE!!!");
+		cb(null, logger.warn("ONLY image files are acceptable!"));
 	}
 };
 
 // multer is a library that allows for image storing
-const upload = multer({ storage: storeImg, fileFilter: isImg });
+const upload = multer({
+	storage: storeImg,
+	fileFilter: isImg,
+	limits: { fileSize: config.max_upload_size },
+});
 
-app.post("/api/picUpload", upload.single("lunarImage"), (req, res) => {
+function uploadHandler(next) { // outer function takes in "next" request handler
+	return function(req, res) { // returns a request handler uses "next" inside
+		upload.single("lunarImage")(req, res, function(error) { // MulterError handler function
+			if (error && error.code == 'LIMIT_FILE_SIZE') {
+				logger.warn("IMAGE IS TOO BIG!");
+				res.status(413).json({
+					status: "UPLOAD FAILED ! ❌",
+					message: `IMAGE IS TOO BIG!, UPLOAD LIMIT IS: ${config.max_upload_size}`,
+				});
+			}
+			else {
+				if (!req.file) {
+					res.status(404).json({
+						status: "UPLOAD FAILED ! ❌",
+						message: "FILE NOT FOUND"
+					});
+				}
+				next(req, res); // calls "next" request handler if no error in Multer part
+			}
+		});
+	};
+}
+
+app.post("/api/picUpload", uploadHandler( (req, res) => { // pass upload & db handler as "next" function
 	try {
 		const imgFile = req.file;	// gets the file that is uploaded from the client
 		logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
@@ -118,7 +145,7 @@ app.post("/api/picUpload", upload.single("lunarImage"), (req, res) => {
 			message: "Internal Server Error",
 		});
 	}
-});
+}));
 
 // this is a test route to see if it displays image from the server
 app.get("/api/displayImage/:id", (req, res) => {

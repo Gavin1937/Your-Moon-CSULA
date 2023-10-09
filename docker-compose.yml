@@ -18,7 +18,7 @@ services:
     build:
       context: client/
       args:
-        BACKEND_URL: "http://localhost:3001"
+        BACKEND_URL: ${BACKEND_URL}
     image: your-moon-client
     container_name: your-moon-client
     restart: unless-stopped

@@ -53,7 +53,14 @@ Assuming you are in the root directory of this repository
 * you have 2 options when deploying this application with docker-compose
   1. open frontend and backend in 2 separate ports
   2. only open one port, and use reverse proxy to route both frontend and backend
-* you only need to do following configurations for `use reverse proxy` option
+* you need to configure for both options
+* for `2 separate ports`
+   1. create a new file called `.env`
+   2. and then add a new line in it: `BACKEND_URL="http://my.ip.addr.ess:3001"`
+   3. this file will tell docker-compose where is the backend
+      * you should set the port of backend base on how it is defined in `docker-compose.yml` file, by default its `3001`
+   4. you can use file `.env.template` as your starting point
+* for `use reverse proxy` option
    1. create a new file called `.env`
    2. and then add a new line in it: `APP_PORT=8080`
    3. this file will tell docker-compose which port to expose for the entire app
@@ -65,26 +72,26 @@ Assuming you are in the root directory of this repository
 * deploying for `2 separate ports` option
 
 ```sh
-docker-compose -f .\docker-compose.yml up -d
+docker-compose -f docker-compose.yml up -d
 ```
 
 * deploying for `use reverse proxy` option
 
 ```sh
-docker-compose -f .\docker-compose-reverse-proxy.yml up -d
+docker-compose -f docker-compose-reverse-proxy.yml up -d
 ```
 
 * **Note that you should rebuild docker images to avoid using old/outdated image**
 
 * rebuild for `2 separate ports` option
 ```sh
-docker-compose -f .\docker-compose.yml build
+docker-compose -f docker-compose.yml build --no-cache
 ```
 
 * rebuild for `use reverse proxy` option
 
 ```sh
-docker-compose -f .\docker-compose-reverse-proxy.yml build
+docker-compose -f docker-compose-reverse-proxy.yml build --no-cache
 ```
 
 

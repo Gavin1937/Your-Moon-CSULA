@@ -8,10 +8,12 @@ if (process.env.NODE_ENV === "production") {
 const express = require("express");
 const app = express();
 const mysql = require("mysql");
+const AWS = require('aws-sdk');
 const bodyParser = require("body-parser");
 const fs = require("fs");
 const fileUpload = require("express-fileupload");
 const multer = require("multer");
+const multerS3 = require('multer-s3');
 const cors = require("cors");
 const sharp = require("sharp");
 var logger = require('./logger.js')(config.log_file, config.log_level);
@@ -26,20 +28,47 @@ app.use(bodyParser.json());
 app.use(express.json());
 app.use(cors());
 
+// Connection to S3 database with full S3 connection
+AWS.config.update(config.aws);
+
+// Create a connection to yourmoon bucket
+// const s3 = new AWS.S3({params : {Bucket: 'yourmoon'}});
+const s3 = new AWS.S3();
+
+s3.listBuckets((err, data) => {
+	if (err) {
+		console.error('AWS connection error:', err);
+	} else {
+		console.log('AWS connection successful.');
+		console.log(data);
+	}
+});
+
 // Setting up connection (Currently, it's set up to our own localhost. There is no server as of now.)
 // Currently, you would have to create your own database called 'lunarimages' in MySQL
 const db = mysql.createPool(config.db);
 
-// file system
-const storeImg = multer.diskStorage({
-	destination: (req, file, cb) => {
-		// cb = callback
-		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
-	},
-	filename: (req, file, cb) => {
-		cb(null, `image-${Date.now()}.${file.originalname}`);
-	},
+// Specifically for testing connection, not needed in final design
+db.getConnection((err, connection) => {
+	if(err) {
+		console.error('Error connecting to the database:', err);
+		return;
+	}
+	else {
+		console.log('Database is connected successfully!');
+	}
 });
+
+// old file system, this stores to the uploadedImages, no longer needed
+// const storeImg = multer.diskStorage({
+// 	destination: (req, file, cb) => {
+// 		// cb = callback
+// 		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
+// 	},
+// 	filename: (req, file, cb) => {
+// 		cb(null, `image-${Date.now()}.${file.originalname}`);
+// 	},
+// });
 
 // file filter to only allow image file types ()
 const isImg = (req, file, cb) => {
@@ -51,11 +80,33 @@ const isImg = (req, file, cb) => {
 	}
 };
 
-// multer is a library that allows for image storing
+// multer is a library that allows for image
+// this stores to the uploaded images folder
+// const upload = multer({
+// 	storage: storeImg,
+// 	fileFilter: isImg,
+// 	limits: { fileSize: config.max_upload_size },
+// });
+
+// this stores to the s3 bucket
 const upload = multer({
-	storage: storeImg,
-	fileFilter: isImg,
-	limits: { fileSize: config.max_upload_size },
+	storage: multerS3({
+		s3: s3,
+		acl: 'public-read',
+		bucket: 'yourmoon',
+		key: function (req, file, cb) {
+			logger.warn("Upload Query: ", req.query);
+			logger.warn("File Information:\n", file);
+			const key = `image-${new Date().toISOString()}.${file.originalname}`;
+			if (key) {
+			  cb(null, key);
+			} else {
+			  cb(new Error("Error generating S3 key"));
+			}
+		  },
+		fileFilter: isImg,
+		limits: { fileSize: config.max_upload_size },
+	})
 });
 
 function uploadHandler(next) { // outer function takes in "next" request handler
@@ -100,6 +151,8 @@ app.post("/api/picUpload", uploadHandler( (req, res) => { // pass upload & db ha
 
 		// getting the inputted data from the client through destructuring
 		const { longitude, latitude, time, date } = req.query;
+		const photoUrl = imgFile.location;
+		logger.debug(`photoUrl: ${photoUrl}`);
 
 		// testing purposes to see the data
 		logger.debug(`longitude: ${longitude}`);
@@ -125,10 +178,10 @@ app.post("/api/picUpload", uploadHandler( (req, res) => { // pass upload & db ha
 			local machine since this isn't hosted on a server right now
 		*/
 		const sqlInsert =
-			"INSERT INTO LunarImageDB (img_name, img_type, img_file, longitude, latitude, m_time, m_date) values(?, ?, ?, ?, ?, ?, ?)";
+			"INSERT INTO LunarImageDB (time, date, img_name, img_type, img_uri, img_longitude, img_latitude) VALUES(?, ?, ?, ?, ?, ?, ?)";
 
 		// query the SQL statement with the data and image file that the user provides from the client
-		db.query(sqlInsert, [imageName, imageType, path, longitude, latitude, time, date], (error, result) => {
+		db.query(sqlInsert, [time, date, imageName, imageType, photoUrl, longitude, latitude], (error, result) => {
 			if (error) {
 				logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
 				logger.error(`error:\n${JSON.stringify(error, null, 2)}`);

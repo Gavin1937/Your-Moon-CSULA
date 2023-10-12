@@ -9,12 +9,9 @@ const express = require("express");
 const app = express();
 const AWS = require("aws-sdk");
 const bodyParser = require("body-parser");
-const fs = require("fs");
-const fileUpload = require("express-fileupload");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
 const cors = require("cors");
-const sharp = require("sharp");
 const DBManager = require('./DBManager.js');
 var logger = require('./logger.js')(config.log_file, config.log_level);
 var db = new DBManager(config.db, logger);
@@ -29,33 +26,6 @@ app.use(bodyParser.json());
 app.use(express.json());
 app.use(cors());
 
-// Connection to S3 database with full S3 connection
-let aws_config = (({ bucket_name, ...o }) => o)(config.aws)
-AWS.config.update(aws_config);
-
-// Create a connection to yourmoon bucket
-const s3 = new AWS.S3();
-
-s3.listBuckets((err, data) => {
-	if (err) {
-		logger.error('AWS connection error:', err);
-	} else {
-		logger.info('AWS connection successful.');
-		logger.info(`\n${JSON.stringify(data,null,2)}`);
-	}
-});
-
-
-// file system
-// const storeImg = multer.diskStorage({
-// 	destination: (req, file, cb) => {
-// 		// cb = callback
-// 		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
-// 	},
-// 	filename: (req, file, cb) => {
-// 		cb(null, `image-${Date.now()}.${file.originalname}`);
-// 	},
-// });
 
 // file filter to only allow image file types ()
 const isImg = (req, file, cb) => {
@@ -67,7 +37,44 @@ const isImg = (req, file, cb) => {
 	}
 };
 
-// multer is a library that allows for image storing
+
+// save to file system
+// ==================================================
+// const storeImg = multer.diskStorage({
+// 	destination: (req, file, cb) => {
+// 		// cb = callback
+// 		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
+// 	},
+// 	filename: (req, file, cb) => {
+// 		cb(null, `image-${Date.now()}.${file.originalname}`);
+// 	},
+// });
+// const upload = multer({
+// 	storage: storeImg,
+// 	fileFilter: isImg,
+// 	limits: { fileSize: config.max_upload_size },
+// });
+// ==================================================
+
+
+// save to aws s3
+// ==================================================
+// Connection to S3 database with full S3 connection
+let aws_config = (({ bucket_name, ...others }) => others)(config.aws)
+AWS.config.update(aws_config);
+
+// Create a connection to yourmoon bucket
+const s3 = new AWS.S3();
+s3.listBuckets((err, data) => {
+	if (err) {
+		logger.error('AWS connection error:', err);
+	} else {
+		logger.info('AWS connection successful.');
+		logger.info(`\n${JSON.stringify(data,null,2)}`);
+	}
+});
+
+// setup multer for upload to s3
 const upload = multer({
 	storage: multerS3({
 		s3: s3,
@@ -87,6 +94,8 @@ const upload = multer({
 		limits: { fileSize: config.max_upload_size },
 	})
 });
+// ==================================================
+
 
 function uploadHandler(next) { // outer function takes in "next" request handler
 	return function (req, res) { // returns a request handler uses "next" inside
@@ -173,7 +182,7 @@ app.post("/api/picMetadata", (req, res) => {
 		db.addImage(req.body.instrument, req.body.image, req.body.moon, (error, result) => {
 			if (error) {
 				logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
-				logger.error(`error:\n${JSON.stringify(error, null, 2)}`);
+				logger.error(`error:\n${error}`);
 				res.status(500).json({
 					status: "UPLOAD FAILED ! ❌",
 					message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
@@ -182,6 +191,8 @@ app.post("/api/picMetadata", (req, res) => {
 			else {
 				logger.info("Successfully inserted into the lunarimages database!");
 				logger.info("IMAGE INSERTED SUCCESSFULLY!");
+				
+				// TODO: response with credentials for picture file upload
 				res.status(200).json({
 					status: "UPLOAD SUCCESSFUL ! ✔️"
 				});
@@ -199,9 +210,8 @@ app.post("/api/picMetadata", (req, res) => {
 
 // running on port 3001 currently
 app.listen(config.app_port, () => {
+	// start up
 	logger.info(`Start server on port: ${config.app_port}`);
+	logger.info(`Logging Level: ${config.log_level}`);
+	logger.info(`Save log file to:\n${config.log_file}`);
 });
-
-// start up
-logger.info(`Logging Level: ${config.log_level}`);
-logger.info(`Save log file to: ${config.log_file}`);

@@ -40,12 +40,16 @@ class DBManager {
                 res.connect(function(err) {
                     that.logger.debug(`res.connect err: ${err}`);
                     if (err) {
+                        that.logger.error(`Exception when connecting to database:\n${err.stack}`);
+                        that.db = null;
+                        that.establishedConnection = null;
                         that.dropConnection();
-                        throw err;
+                        return;
                     }
-                    
-                    that.logger.info(`Connected to database, res.state=${res.state}`);
-                    that.db = res;
+                    else {
+                        that.logger.info(`Connected to database, res.state=${res.state}`);
+                        that.db = res;
+                    }
                 })
             });
         }
@@ -53,6 +57,12 @@ class DBManager {
     
     addImage(instrument, image, moon, handler)
     {
+        if (this.establishedConnection == null || this.db == null) {
+            this.logger.error(`Did not connect to database`);
+            handler(new Error(`Did not connect to database`), null);
+            return;
+        }
+        
         this.logger.debug(`instrument: ${JSON.stringify(instrument, null, 2)}`);
         this.logger.debug(`image: ${JSON.stringify(image, null, 2)}`);
         this.logger.debug(`moon: ${JSON.stringify(moon, null, 2)}`);

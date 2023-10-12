@@ -19,7 +19,6 @@
     "log_file": "/path/to/your-moon-server.log",
     "log_level": "debug",
     "db": {
-        "connectionLimit": 10,
         "host": "localhost",
         "port": 3306,
         "user": "username",

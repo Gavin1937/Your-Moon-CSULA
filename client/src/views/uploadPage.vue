@@ -40,6 +40,7 @@ let data = reactive({
 	// Tracks time input if there isn't meta data
 	time : '',
 	file : null,
+	fileType : '',
 	imageDataUrl : null,
 	showCropper : false,
 	croppedImage : null,
@@ -110,6 +111,7 @@ function checkFileType(file) {
       data.message = "File type not accepted";
     }
 
+	data.fileType = fileType;
     data.isValidFileType = fileType !== "invalid" ? true : false;
   };
   reader.readAsArrayBuffer(file);
@@ -234,7 +236,7 @@ async function uploadCroppedImage() {
 			});
 		});
 		const formData = new FormData();
-		formData.append("lunarImage", imgFile, '.jpg');
+		formData.append("lunarImage", imgFile, data.fileType);
 		// make post request to upload image to database
 		const res = await axios.post(`${config.backend_url}/api/picUpload`, formData, {
 			params: {

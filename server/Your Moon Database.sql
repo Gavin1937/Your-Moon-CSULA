@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS Instruments(
     inst_id             INT              AUTO_INCREMENT PRIMARY KEY NOT NULL,
     inst_type           VARCHAR(25)      NOT NULL, -- "phone", "camera", "phone+telescope", "camera+telescope"
     inst_make           VARCHAR(256)     NULL,
-    inst_model          VARCHAR(256)     NULL
+    inst_model          VARCHAR(256)     NULL,
+    CONSTRAINT unique_inst UNIQUE (inst_type,inst_make,inst_model)
     -- other instrument metadata...
 );
 

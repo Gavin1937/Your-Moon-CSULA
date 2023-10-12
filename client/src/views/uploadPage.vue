@@ -45,6 +45,15 @@ let data = reactive({
 	croppedImage : null,
 })
 
+// async function getGoogleData(){
+// 	try{
+// 	let user = await axios.get("http://localhost:3001/auth/login/success")
+// 	console.log(user)
+// 	}catch(error){
+// 		console.log(error)
+// 	}
+	
+// }
 function getScaledCropData(){
 	// Gets cropBoxData and scales it up to the scale of the original image.
 	try{
@@ -90,10 +99,15 @@ function checkFileType(file) {
   reader.onload = (e) => {
     let fileType = "";
     let arr = new Uint8Array(e.target.result).subarray(0, 16);
+	// console.log(arr8bit)
+	// let dataview = new DataView(arr8bit.buffer);
+	// let arr32be = dataview.getInt32(0);
+	// console.log(arr32be)
 
     for (let i = 0; i < arr.length; i++) {
       header += arr[i].toString(16);
     }
+	// console.log(header)
 
     //hexadecimal representation of those file extensions. References: https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
     //https://en.wikipedia.org/wiki/List_of_file_signatures

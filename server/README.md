@@ -28,7 +28,8 @@
     "aws": {
         "accessKeyId": "SUPER/SECRET?KEY1",
         "secretAccessKey": "THIS@KEY%IS*EVEN%MORE$SECRET",
-        "region": "us-west-2"
+        "region": "us-west-2",
+        "bucket_name": "my-bucket-name"
     }
 }
 ```

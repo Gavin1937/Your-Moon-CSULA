@@ -1,5 +1,5 @@
 require('dotenv').config();
-let config = null;
+var config = null;
 if (process.env.NODE_ENV === "production") {
 	config = require("./config/production.config.json");
 } else {
@@ -17,7 +17,7 @@ const cors = require("cors");
 const sharp = require("sharp");
 const DBManager = require('./DBManager.js');
 var logger = require('./logger.js')(config.log_file, config.log_level);
-let db = new DBManager(config.db, logger);
+var db = new DBManager(config.db, logger);
 
 
 // parse application/x-www-form-urlencoded
@@ -30,19 +30,21 @@ app.use(express.json());
 app.use(cors());
 
 // Connection to S3 database with full S3 connection
-AWS.config.update(config.aws);
+let aws_config = (({ bucket_name, ...o }) => o)(config.aws)
+AWS.config.update(aws_config);
 
 // Create a connection to yourmoon bucket
 const s3 = new AWS.S3();
 
 s3.listBuckets((err, data) => {
 	if (err) {
-		console.error('AWS connection error:', err);
+		logger.error('AWS connection error:', err);
 	} else {
-		console.log('AWS connection successful.');
-		console.log(data);
+		logger.info('AWS connection successful.');
+		logger.info(`\n${JSON.stringify(data,null,2)}`);
 	}
 });
+
 
 // file system
 // const storeImg = multer.diskStorage({
@@ -70,7 +72,7 @@ const upload = multer({
 	storage: multerS3({
 		s3: s3,
 		acl: 'public-read',
-		bucket: 'yourmoon',
+		bucket: config.aws.bucket_name,
 		key: function (req, file, cb) {
 			logger.warn("Upload Query: ", req.query);
 			logger.warn("File Information:\n", file);
@@ -147,6 +149,10 @@ app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db han
 		logger.info(`NAME: ${imageName}`);
 		logger.info(`IMAGE TYPE: ${imageType}`);
 		logger.info(`path: ${path}`);
+
+		res.status(200).json({
+			status: "UPLOAD SUCCESSFUL ! ✔️"
+		})
 	}
 	catch (error) {
 		logger.error(`Exception:\n${error.stack}`);

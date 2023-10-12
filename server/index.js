@@ -7,13 +7,17 @@ if (process.env.NODE_ENV === "production") {
 }
 const express = require("express");
 const app = express();
-const mysql = require("mysql");
+const mysql = require("mysql2");
 const bodyParser = require("body-parser");
 const fs = require("fs");
 const fileUpload = require("express-fileupload");
 const multer = require("multer");
 const cors = require("cors");
 const sharp = require("sharp");
+const passport = require("passport");
+const passportSetup = require("./passport");
+const cookieSession = require('cookie-session');
+const authRoutes = require("./routes/auth");
 var logger = require('./logger.js')(config.log_file, config.log_level);
 
 
@@ -25,6 +29,23 @@ app.use(bodyParser.json());
 
 app.use(express.json());
 app.use(cors());
+app.use(cookieSession({
+	name:"session",
+	keys:["Your-Moon"],//encryption key,
+	maxAge: 60 * 30 //30 minutes
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+//allows to send sessions to client and server
+app.use(cors({
+	origin:"http://localhost:5173", //replace with home page url
+	methods:"GET,POST",
+	credentials: true,
+}))
+
+app.use("/auth", authRoutes)
 
 // Setting up connection (Currently, it's set up to our own localhost. There is no server as of now.)
 // Currently, you would have to create your own database called 'lunarimages' in MySQL

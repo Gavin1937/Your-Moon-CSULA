@@ -12,6 +12,7 @@
 <script setup>
     async function google() {
         window.open("http://localhost:3001/auth/google", "_self")
+        // await axios.get("http://localhost:3001/auth/google")
     }
 
     async function github() {

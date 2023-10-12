@@ -24,6 +24,11 @@
         "user": "username",
         "password": "password",
         "database": "YourMoonDB"
+    },
+    "aws": {
+        "accessKeyId": "SUPER/SECRET?KEY1",
+        "secretAccessKey": "THIS@KEY%IS*EVEN%MORE$SECRET",
+        "region": "us-west-2"
     }
 }
 ```

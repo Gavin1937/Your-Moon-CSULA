@@ -18,6 +18,8 @@
     "max_upload_size": 31457280, // 30MB
     "log_file": "/path/to/your-moon-server.log",
     "log_level": "debug",
+    "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
+    "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
     "db": {
         "host": "localhost",
         "port": 3306,
@@ -34,7 +36,15 @@
 }
 ```
 
-3. you can use `.template` files under `src/server/config/` as your starting point
+* Note that both `aes_key` and `jwt_secret` are saved as base64 encoded strings. To create them, you can run following python script in any python 3.x environment. (I suggest [this website](https://www.programiz.com/python-programming/online-compiler/) for anyone don't want to install python)
+
+```py
+from random import randbytes
+from base64 import b64encode
+print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8'))
+```
+
+1. you can use `.template` files under `src/server/config/` as your starting point
 
 
 ## Deploy

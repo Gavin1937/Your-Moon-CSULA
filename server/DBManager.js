@@ -1,5 +1,7 @@
 const mysql = require("mysql2");
 const uuid = require("uuid");
+const jwt = require('jsonwebtoken');
+var CryptoJS = require("crypto-js")
 
 
 function getUnixTimestampNow() {
@@ -141,6 +143,98 @@ class DBManager {
             this.logger.error(`query_error: ${query_error.stack}`);
             this.dropConnection();
         }
+    }
+    
+    registerUser(user_email, aes_key, jwt_secret, handler)
+    {
+        if (this.establishedConnection == null || this.db == null) {
+            this.logger.error(`Did not connect to database`);
+            handler(new Error(`Did not connect to database`), null);
+            return;
+        }
+        
+        let insert_user = `INSERT INTO Users(user_email) VALUES(?);`;
+        let encrypted_email = CryptoJS.AES.encrypt(
+            user_email,
+            CryptoJS.enc.Base64.parse(aes_key),
+            {
+                mode: CryptoJS.mode.CBC,
+                iv: CryptoJS.enc.Utf8.parse("0000000000000000"),
+            }
+        );
+        let hashed_email = CryptoJS.MD5(user_email).toString();
+        let insert_user_list = [encrypted_email.toString()]
+        
+        this.logger.debug(`encrypted_email: ${encrypted_email}`);
+        this.logger.debug(`hashed_email: ${hashed_email}`);
+        
+        this.db.query(insert_user, insert_user_list, (error, result) => {
+            this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+            // failed to insert, duplicate user_email
+            if (error) {
+                handler(new Error("Failed to insert new user, duplicate user_email"), null);
+                return;
+            }
+            
+            // insert success, generate jwt with user_id & hashed_email
+            let jwt_output = jwt.sign(
+                {user_id:result.insertId, hashed_email:hashed_email},
+                Buffer.from(jwt_secret, 'base64'),
+                {algorithm:"HS256", expiresIn:"2 days"}
+            );
+            this.logger.debug(`jwt_output: ${jwt_output}`);
+            handler(null, jwt_output)
+        })
+    }
+    
+    verifyUserJWT(user_jwt, aes_key, jwt_secret, handler)
+    {
+        if (this.establishedConnection == null || this.db == null) {
+            this.logger.error(`Did not connect to database`);
+            handler(new Error(`Did not connect to database`), null);
+            return;
+        }
+        
+        jwt.verify(user_jwt, Buffer.from(jwt_secret, 'base64'), (jwt_error, payload) => {
+            this.logger.debug(`jwt_error: ${jwt_error}`);
+            this.logger.debug(`payload: ${JSON.stringify(payload,null,2)}`);
+            if (jwt_error) {
+                handler(new Error("Invalid JWT"), null);
+                return;
+            } else {
+                let get_email = `SELECT user_email FROM Users WHERE user_id = ?;`;
+                let get_email_list = [payload.user_id];
+                this.db.query(get_email, get_email_list, (error, result) => {
+                    this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+                    this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+                    if (error) {
+                        handler(new Error("Failed to find user's email by id"), null);
+                        return;
+                    } else {
+                        let encrypted_email = result[0].user_email;
+                        let decrypted_email = CryptoJS.AES.decrypt(
+                            encrypted_email,
+                            CryptoJS.enc.Base64.parse(aes_key),
+                            {
+                                mode: CryptoJS.mode.CBC,
+                                iv: CryptoJS.enc.Utf8.parse("0000000000000000"),
+                            }
+                        );
+                        this.logger.debug(`encrypted_email: ${encrypted_email.toString(CryptoJS.enc.Utf8)}`);
+                        this.logger.debug(`decrypted_email: ${decrypted_email.toString(CryptoJS.enc.Utf8)}`);
+                        let hashed_email = CryptoJS.MD5(decrypted_email.toString(CryptoJS.enc.Utf8)).toString();
+                        this.logger.debug(`hashed_email: ${hashed_email}`);
+                        if (hashed_email != payload.hashed_email) {
+                            handler(new Error("User email not matching"), null);
+                            return;
+                        } else {
+                            handler(null, true);
+                        }
+                    }
+                });
+            }
+        });
     }
     
     registerUploadJob(upload_job_expire, user_id, handler)

@@ -4,6 +4,8 @@
     "max_upload_size": 31457280,
     "log_file": "/path/to/your-moon-server.log",
     "log_level": "info",
+    "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
+    "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
     "db": {
         "host": "localhost",
         "port": 3306,

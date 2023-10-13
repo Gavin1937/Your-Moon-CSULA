@@ -125,7 +125,7 @@ function uploadHandler(next) { // outer function takes in "next" request handler
 // upload picture file (file upload only)
 app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db handler as "next" function
 	try {
-		// TODO: check JWT in the cookie here
+		// TODO: check JWT in the cookie here, similar to endpoint: "/api/verifyUser"
 		
 		const imgFile = req.file;	// gets the file that is uploaded from the client
 		logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
@@ -185,7 +185,7 @@ app.post("/api/picMetadata", (req, res) => {
 		logger.debug(`req.body:`);
 		logger.debug(JSON.stringify(req.body));
 		
-		// TODO: check JWT in the cookie here
+		// TODO: check JWT in the cookie here, similar to endpoint: "/api/verifyUser"
 		
 		db.addImage(req.body.instrument, req.body.image, req.body.moon, (error, result) => {
 			if (error) {
@@ -228,6 +228,88 @@ app.post("/api/picMetadata", (req, res) => {
 		});
 	}
 });
+
+//! This is a demo endpoint, we can do user authentication in auth.js
+app.post("/api/authUser", (req, res) => {
+	try {
+		logger.info("In authUser");
+		logger.debug(`req.body:`);
+		logger.debug(JSON.stringify(req.body));
+		
+		// TODO: retrieve email from OAuth 2.0
+		const { user_email } = req.query;
+		logger.debug(`user_email: ${user_email}`);
+		
+		db.registerUser(user_email, config.aes_key, config.jwt_secret, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+			if (error) {
+				logger.error(`error:\n${error}`);
+				let message = null;
+				if (error.toString().includes("duplicate")) {
+					message = "DUPLICATE EMAIL";
+				} else {
+					message = "FAILED TO REGISTER USER";
+				}
+				res.status(400).json({
+					status: "REGISTER FAILED ! ❌",
+					message: message,
+				});
+				logger.error(message);
+			}
+			else {
+				// response with jwt
+				res.status(200).json(result);
+			}
+		});
+	}
+	catch (error) {
+		logger.error(`Exception:\n${error.stack}`);
+		res.status(500).json({
+			status: "UPLOAD FAILED ! ❌",
+			message: "Internal Server Error",
+		});
+	}
+})
+
+//! This is a demo endpoint, we need to verify user's jwt right inside other endpoints
+app.get("/api/verifyUser", (req, res) => {
+	try {
+		logger.info("In verifyUser");
+		logger.debug(`req.body:`);
+		logger.debug(JSON.stringify(req.body));
+		
+		// user_jwt is inside http header: authorization
+		const user_jwt = req.headers.authorization;
+		logger.debug(`user_jwt: ${user_jwt}`);
+		
+		db.verifyUserJWT(user_jwt, config.aes_key, config.jwt_secret, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+			if (error) {
+				logger.error(`error:\n${error}`);
+				res.status(400).json({
+					status: "VERIFY FAILED ! ❌",
+					message: error.toString(),
+				});
+			}
+			else {
+				logger.info("VERIFIED USER!");
+				res.status(200).json({
+					status: "VERIFY SUCCESS ! ✔️",
+					verify:result
+				});
+			}
+		});
+	}
+	catch (error) {
+		logger.error(`Exception:\n${error.stack}`);
+		res.status(500).json({
+			status: "UPLOAD FAILED ! ❌",
+			message: "Internal Server Error",
+		});
+	}
+})
 
 // running on port 3001 currently
 app.listen(config.app_port, () => {

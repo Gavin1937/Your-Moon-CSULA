@@ -1,7 +1,7 @@
 
 
 <template>
-    <div class="container">
+    <div class="login_container">
         <p>Login</p>
         <a @click="google">Login with Google</a>
         <a @click="facebook">Login with Facebook</a>
@@ -21,7 +21,7 @@
 </script>
 
 <style>
-    .container{
+    .login_container{
         color: black;
         background-color: aliceblue;
         display: flex;

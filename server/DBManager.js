@@ -61,7 +61,7 @@ class DBManager {
         }
     }
     
-    findOrAddUserByEmail(email)
+    findOrAddUserByEmail(email, done)
     {
         const sqlSearch = 'SELECT * FROM Users WHERE user_email = ?';
         const sqlInsert = 'INSERT INTO Users (user_email) VALUES (?)';
@@ -71,34 +71,33 @@ class DBManager {
             return;
         }
         this.logger.info(email);
-
-        // try{
-        //     this.db.query(sqlSearch, email, (err, row) => {
-        //       if(err) {
-        //         this.logger.error("DB error occurred");
-        //         return done(err);
-        //       }
-        //       else if(row.length == 1){
-        //         return row;
-        //       }
-        //       else{
-        //         this.db.query(sqlInsert,email, (err,row) =>{
-        //           if(err){
-        //             this.logger.error("DB error occured");
-        //             return done(err);
-        //           }
+        try{
+            this.db.query(sqlSearch, email, (err, row) => {
+              if(err) {
+                this.logger.error("DB error occurred");
+                return done(err);
+              }
+              else if(row.length == 1){
+                return done(null, row);
+              }
+              else{
+                this.db.query(sqlInsert,email, (err,row) =>{
+                  if(err){
+                    this.logger.error("DB error occured");
+                    return done(err);
+                  }
                   
-        //           else{ 
-        //             return row;
-        //           }
-        //         })
-        //       }
+                  else{ 
+                    return done(null, row);
+                  }
+                })
+              }
           
-        //     })
-        //     }catch(err){
-        //         this.logger.error("DB error occured1")
-        //         this.logger.error(err.stack);
-        //     }
+            })
+            }catch(err){
+                this.logger.error("DB error occured1")
+                this.logger.error(err.stack);
+            }
     
     }
 

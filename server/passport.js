@@ -43,9 +43,15 @@ passport.use(new GoogleStrategy({
     //   return cb(err, user);
     // });
     const email = profile.emails[0].value;
-    db.findOrAddUserByEmail(email);
+    db.findOrAddUserByEmail(email, (err, profile) =>{
+      if(err){
+        logger.error(err)
+        return done(err)
+      }
+      return done(null, profile)
+    })
     // console.log('Email : '+ profile.emails[0].value);
-    // done(null,profile)
+    done(null,profile)
   }
 ));
 

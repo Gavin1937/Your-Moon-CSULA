@@ -125,6 +125,8 @@ function uploadHandler(next) { // outer function takes in "next" request handler
 // upload picture file (file upload only)
 app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db handler as "next" function
 	try {
+		// TODO: check JWT in the cookie here
+		
 		const imgFile = req.file;	// gets the file that is uploaded from the client
 		logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
 
@@ -137,20 +139,10 @@ app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db han
 			});
 		}
 
-		// testing purposes to see some info of the file
-		logger.debug(`req.body:\n${JSON.stringify(req.body, null, 2)}`);
-
-		// getting the inputted data from the client through destructuring
-		const { longitude, latitude, time, date } = req.query;
-		const photoUrl = imgFile.location;
-
-		// testing purposes to see the data
-		logger.debug(`photoUrl: ${photoUrl}`);
-		logger.debug(`longitude: ${longitude}`);
-		logger.debug(`latitude: ${latitude}`);
-		logger.debug(`time: ${time}`);
-		logger.debug(`date: ${date}`);
-
+		const { upload_uuid } = req.query;
+		
+		logger.info(`upload_uuid: ${upload_uuid}`);
+		
 		const imageName = req.file.originalname; // name of the image file
 		const imageType = req.file.mimetype; // type of the image file
 		const path = req.file.path; // gets the buffer
@@ -158,10 +150,24 @@ app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db han
 		logger.info(`NAME: ${imageName}`);
 		logger.info(`IMAGE TYPE: ${imageType}`);
 		logger.info(`path: ${path}`);
-
-		res.status(200).json({
-			status: "UPLOAD SUCCESSFUL ! ✔️"
-		})
+		
+		// rm job from the queue
+		db.finishUploadJob(upload_uuid, 1, 0, (error, result) => {
+			if (error) {
+				logger.error("THERE HAS BEEN AN ERROR UPLOADING THE IMAGE!");
+				logger.error(`error:\n${error.toString()}`);
+				res.status(400).json({
+					status: "UPLOAD FAILED ! ❌",
+					message: error.toString(),
+				});
+			}
+			else {
+				// upload success, save file
+				res.status(200).json({
+					status: "UPLOAD SUCCESSFUL ! ✔️"
+				})
+			}
+		});
 	}
 	catch (error) {
 		logger.error(`Exception:\n${error.stack}`);
@@ -179,6 +185,8 @@ app.post("/api/picMetadata", (req, res) => {
 		logger.debug(`req.body:`);
 		logger.debug(JSON.stringify(req.body));
 		
+		// TODO: check JWT in the cookie here
+		
 		db.addImage(req.body.instrument, req.body.image, req.body.moon, (error, result) => {
 			if (error) {
 				logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
@@ -192,9 +200,22 @@ app.post("/api/picMetadata", (req, res) => {
 				logger.info("Successfully inserted into the lunarimages database!");
 				logger.info("IMAGE INSERTED SUCCESSFULLY!");
 				
-				// TODO: response with credentials for picture file upload
-				res.status(200).json({
-					status: "UPLOAD SUCCESSFUL ! ✔️"
+				// TODO: use redis for this job queue
+				db.registerUploadJob(config.upload_job_expire, 1, (error, result) => {
+					if (result == null) {
+						res.status(400).json({
+							status: "UPLOAD FAILED ! ❌",
+							message: error.toString(),
+						});
+					}
+					else {
+						res.status(200).json({
+							status: "UPLOAD SUCCESSFUL ! ✔️",
+							upload_uuid: result.upload_uuid,
+							expires: result.expires,
+							// TODO: response with credentials for picture file upload
+						});
+					}
 				});
 			}
 		});

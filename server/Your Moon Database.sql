@@ -41,3 +41,9 @@ CREATE TABLE IF NOT EXISTS Images(
     moon_loc_y          INT              NULL,     -- circle center y
     moon_loc_r          INT              NULL      -- circle radius
 );
+
+CREATE TABLE IF NOT EXISTS UploadJobs(
+    uuid                BINARY(16)       PRIMARY KEY NOT NULL,
+    expires             INT              NOT NULL,
+    user_id             INT              NOT NULL
+);

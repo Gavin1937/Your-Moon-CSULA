@@ -1,4 +1,10 @@
 const mysql = require("mysql2");
+const uuid = require("uuid");
+
+
+function getUnixTimestampNow() {
+    return Math.floor((new Date()).getTime() / 1000);
+}
 
 class DBManager {
     
@@ -131,6 +137,78 @@ class DBManager {
                     }
                 }
             );
+        } catch (query_error) {
+            this.logger.error(`query_error: ${query_error.stack}`);
+            this.dropConnection();
+        }
+    }
+    
+    registerUploadJob(upload_job_expire, user_id, handler)
+    {
+        if (this.establishedConnection == null || this.db == null) {
+            this.logger.error(`Did not connect to database`);
+            handler(new Error(`Did not connect to database`), null);
+            return;
+        }
+        
+        // we use an uuid to identify an upload job
+        // so we can increment "user_upload_count" int inside Users table
+        let upload_uuid = uuid.v4();
+        let now = getUnixTimestampNow();
+        let expires = now + upload_job_expire;
+        try {
+            let insert_job = `
+            INSERT INTO UploadJobs
+            VALUES(UUID_TO_BIN(?), ?, ?)
+            ;`
+            let insert_job_list = [upload_uuid, expires, user_id];
+            
+            this.db.query(insert_job, insert_job_list, (error, result) => {
+                this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+                // duplicate uuid
+                if (result == undefined || result.affectedRows <= 0) {
+                    this.logger.warn(`duplicate uuid`);
+                    handler(new Error("Duplicate UUID"), null);
+                } else {
+                    handler(null, {upload_uuid:upload_uuid, expires:expires});
+                }
+            });
+        } catch (query_error) {
+            this.logger.error(`query_error: ${query_error.stack}`);
+            this.dropConnection();
+        }
+    }
+    
+    finishUploadJob(upload_uuid, upload_count, flag_count, handler)
+    {
+        if (this.establishedConnection == null || this.db == null) {
+            this.logger.error(`Did not connect to database`);
+            handler(new Error(`Did not connect to database`), null);
+            return;
+        }
+        
+        try {
+            let select_job = `SELECT * FROM UploadJobs WHERE uuid = UUID_TO_BIN(?);`;
+            let select_job_list = [upload_uuid];
+            let update_user = `UPDATE Users SET user_upload_count = user_upload_count + ?, user_flag_count = user_flag_count + ? WHERE user_id = ?;`;
+            
+            this.db.query(select_job, select_job_list, (error, result) => {
+                this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+                this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+                if (error) {
+                    handler(error, null);
+                    return;
+                }
+                if (result.length == 1) {
+                    this.db.query(`DELETE FROM UploadJobs WHERE uuid = UUID_TO_BIN(?);`, [upload_uuid], (error2, result2) => {
+                        this.logger.debug(`result2: ${JSON.stringify(result2,null,2)}`);
+                        this.logger.debug(`error2: ${JSON.stringify(error2,null,2)}`);
+                        this.db.query(update_user, [upload_count, flag_count, result[0].user_id], handler);
+                    });
+                } else {
+                    handler(new Error("Cannot find upload job uuid"), null);
+                }
+            });
         } catch (query_error) {
             this.logger.error(`query_error: ${query_error.stack}`);
             this.dropConnection();

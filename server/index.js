@@ -12,9 +12,10 @@ const bodyParser = require("body-parser");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const DBManager = require('./DBManager.js');
 var logger = require('./logger.js')(config.log_file, config.log_level);
-var db = new DBManager(config.db, logger);
+var db = new DBManager(config.db, config.aes_key, config.jwt_secret, logger);
 
 
 // parse application/x-www-form-urlencoded
@@ -25,6 +26,7 @@ app.use(bodyParser.json());
 
 app.use(express.json());
 app.use(cors());
+app.use(cookieParser());
 
 
 // file filter to only allow image file types ()
@@ -125,47 +127,68 @@ function uploadHandler(next) { // outer function takes in "next" request handler
 // upload picture file (file upload only)
 app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db handler as "next" function
 	try {
-		// TODO: check JWT in the cookie here, similar to endpoint: "/api/verifyUser"
-		
-		const imgFile = req.file;	// gets the file that is uploaded from the client
-		logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
-
-		// additional size check
-		if (imgFile.size > config.max_upload_size) {
-			logger.warn("IMAGE IS TOO BIG!");
-			res.status(413).json({
-				status: "UPLOAD FAILED ! ❌",
-				message: `IMAGE IS TOO BIG!, UPLOAD LIMIT IS: ${config.max_upload_size}`,
-			});
+		logger.debug(`req.cookies: ${JSON.stringify(req.cookies,null,2)}`);
+		let jwt_token = req.cookies.token;
+		if (!jwt_token || jwt_token.length <= 0) {
+			res.status(401).json({
+				status: "UNAUTHORIZED ACCESS!",
+				message: "Please login to access this endpoint.",
+			})
+			return;
 		}
-
-		const { upload_uuid } = req.query;
-		
-		logger.info(`upload_uuid: ${upload_uuid}`);
-		
-		const imageName = req.file.originalname; // name of the image file
-		const imageType = req.file.mimetype; // type of the image file
-		const path = req.file.path; // gets the buffer
-
-		logger.info(`NAME: ${imageName}`);
-		logger.info(`IMAGE TYPE: ${imageType}`);
-		logger.info(`path: ${path}`);
-		
-		// rm job from the queue
-		db.finishUploadJob(upload_uuid, 1, 0, (error, result) => {
+		db.verifyUserJWT(jwt_token, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
-				logger.error("THERE HAS BEEN AN ERROR UPLOADING THE IMAGE!");
-				logger.error(`error:\n${error.toString()}`);
+				logger.error(`error:\n${error}`);
 				res.status(400).json({
-					status: "UPLOAD FAILED ! ❌",
+					status: "VERIFY FAILED ! ❌",
 					message: error.toString(),
 				});
 			}
 			else {
-				// upload success, save file
-				res.status(200).json({
-					status: "UPLOAD SUCCESSFUL ! ✔️"
-				})
+				logger.info("VERIFIED USER!");
+				const imgFile = req.file;	// gets the file that is uploaded from the client
+				logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
+				
+				// additional size check
+				if (imgFile.size > config.max_upload_size) {
+					logger.warn("IMAGE IS TOO BIG!");
+					res.status(413).json({
+						status: "UPLOAD FAILED ! ❌",
+						message: `IMAGE IS TOO BIG!, UPLOAD LIMIT IS: ${config.max_upload_size}`,
+					});
+				}
+				
+				const { upload_uuid } = req.query;
+				
+				logger.info(`upload_uuid: ${upload_uuid}`);
+				
+				const imageName = req.file.originalname; // name of the image file
+				const imageType = req.file.mimetype; // type of the image file
+				const path = req.file.path; // gets the buffer
+				
+				logger.info(`NAME: ${imageName}`);
+				logger.info(`IMAGE TYPE: ${imageType}`);
+				logger.info(`path: ${path}`);
+				
+				// rm job from the queue
+				db.finishUploadJob(upload_uuid, 1, 0, (error2, result2) => {
+					if (error2) {
+						logger.error("THERE HAS BEEN AN ERROR UPLOADING THE IMAGE!");
+						logger.error(`error2:\n${error2.toString()}`);
+						res.status(400).json({
+							status: "UPLOAD FAILED ! ❌",
+							message: error2.toString(),
+						});
+					}
+					else {
+						// upload success, save file
+						res.status(200).json({
+							status: "UPLOAD SUCCESSFUL ! ✔️"
+						})
+					}
+				});
 			}
 		});
 	}
@@ -185,35 +208,58 @@ app.post("/api/picMetadata", (req, res) => {
 		logger.debug(`req.body:`);
 		logger.debug(JSON.stringify(req.body));
 		
-		// TODO: check JWT in the cookie here, similar to endpoint: "/api/verifyUser"
+		logger.debug(`req.cookies: ${JSON.stringify(req.cookies,null,2)}`);
+		let jwt_token = req.cookies.token;
+		if (!jwt_token || jwt_token.length <= 0) {
+			res.status(401).json({
+				status: "UNAUTHORIZED ACCESS!",
+				message: "Please login to access this endpoint.",
+			})
+			return;
+		}
 		
-		db.addImage(req.body.instrument, req.body.image, req.body.moon, (error, result) => {
+		db.verifyUserJWT(jwt_token, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
-				logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
 				logger.error(`error:\n${error}`);
-				res.status(500).json({
-					status: "UPLOAD FAILED ! ❌",
-					message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
+				res.status(400).json({
+					status: "VERIFY FAILED ! ❌",
+					message: error.toString(),
 				});
 			}
 			else {
-				logger.info("Successfully inserted into the lunarimages database!");
-				logger.info("IMAGE INSERTED SUCCESSFULLY!");
-				
-				// TODO: use redis for this job queue
-				db.registerUploadJob(config.upload_job_expire, 1, (error, result) => {
-					if (result == null) {
-						res.status(400).json({
+				logger.info("VERIFIED USER!");
+				db.addImage(req.body.instrument, req.body.image, req.body.moon, (error2, result2) => {
+					logger.debug(`result2: ${JSON.stringify(result2,null,2)}`);
+					logger.debug(`error2: ${JSON.stringify(error2,null,2)}`);
+					if (error2) {
+						logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
+						res.status(500).json({
 							status: "UPLOAD FAILED ! ❌",
-							message: error.toString(),
+							message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
 						});
 					}
 					else {
-						res.status(200).json({
-							status: "UPLOAD SUCCESSFUL ! ✔️",
-							upload_uuid: result.upload_uuid,
-							expires: result.expires,
-							// TODO: response with credentials for picture file upload
+						logger.info("Successfully inserted into the YourMoonDB!");
+						logger.info("IMAGE INSERTED SUCCESSFULLY!");
+						
+						// TODO: use redis for this job queue
+						db.registerUploadJob(config.upload_job_expire, 1, (error3, result3) => {
+							if (result3 == null) {
+								res.status(400).json({
+									status: "UPLOAD FAILED ! ❌",
+									message: error3.toString(),
+								});
+							}
+							else {
+								res.status(200).json({
+									status: "UPLOAD SUCCESSFUL ! ✔️",
+									upload_uuid: result3.upload_uuid,
+									expires: result3.expires,
+									// TODO: response with credentials for picture file upload
+								});
+							}
 						});
 					}
 				});
@@ -240,7 +286,7 @@ app.post("/api/authUser", (req, res) => {
 		const { user_email } = req.query;
 		logger.debug(`user_email: ${user_email}`);
 		
-		db.registerUser(user_email, config.aes_key, config.jwt_secret, (error, result) => {
+		db.registerUser(user_email, (error, result) => {
             logger.debug(`result: ${JSON.stringify(result,null,2)}`);
             logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
@@ -283,7 +329,7 @@ app.get("/api/verifyUser", (req, res) => {
 		const user_jwt = req.headers.authorization;
 		logger.debug(`user_jwt: ${user_jwt}`);
 		
-		db.verifyUserJWT(user_jwt, config.aes_key, config.jwt_secret, (error, result) => {
+		db.verifyUserJWT(user_jwt, (error, result) => {
             logger.debug(`result: ${JSON.stringify(result,null,2)}`);
             logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {

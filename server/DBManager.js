@@ -1,7 +1,7 @@
 const mysql = require("mysql2");
 const uuid = require("uuid");
 const jwt = require('jsonwebtoken');
-var CryptoJS = require("crypto-js")
+const CryptoJS = require("crypto-js")
 
 
 function getUnixTimestampNow() {
@@ -10,10 +10,12 @@ function getUnixTimestampNow() {
 
 class DBManager {
     
-    constructor(db_config, logger) {
+    constructor(db_config, aes_key, jwt_secret, logger) {
         this.establishedConnection = null;
         this.db = null;
         this.db_config = db_config;
+        this.aes_key = aes_key;
+        this.jwt_secret = jwt_secret;
         this.logger = logger;
         this.connect();
     }
@@ -83,8 +85,10 @@ class DBManager {
                 [instrument.inst_type, instrument.inst_make, instrument.inst_model],
                 (error, result) => {
                     this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+                    this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
                     if (error) {
-                        handler(error, null);
+                        handler(new Error("Failed to insert new instrument"), null);
+                        return;
                     } else {
                         this.logger.debug(`No error while insert ignore into Instrument table.`);
                         let insert_img = null;
@@ -135,7 +139,16 @@ class DBManager {
                                 moon.moon_loc_x, moon.moon_loc_y, moon.moon_loc_r
                             ];
                         }
-                        this.db.query(insert_img, insert_param, handler);
+                        this.db.query(insert_img, insert_param, (error2, result2) => {
+                            this.logger.debug(`result2: ${JSON.stringify(result2,null,2)}`);
+                            this.logger.debug(`error2: ${JSON.stringify(error2,null,2)}`);
+                            if (error2) {
+                                handler(new Error("Failed to insert new image"));
+                                return;
+                            } else {
+                                handler(null, { message: "New image inserted", img_id: result2.insertId, });
+                            }
+                        });
                     }
                 }
             );
@@ -145,7 +158,7 @@ class DBManager {
         }
     }
     
-    registerUser(user_email, aes_key, jwt_secret, handler)
+    registerUser(user_email, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
             this.logger.error(`Did not connect to database`);
@@ -156,7 +169,7 @@ class DBManager {
         let insert_user = `INSERT INTO Users(user_email) VALUES(?);`;
         let encrypted_email = CryptoJS.AES.encrypt(
             user_email,
-            CryptoJS.enc.Base64.parse(aes_key),
+            CryptoJS.enc.Base64.parse(this.aes_key),
             {
                 mode: CryptoJS.mode.CBC,
                 iv: CryptoJS.enc.Utf8.parse("0000000000000000"),
@@ -180,7 +193,7 @@ class DBManager {
             // insert success, generate jwt with user_id & hashed_email
             let jwt_output = jwt.sign(
                 {user_id:result.insertId, hashed_email:hashed_email},
-                Buffer.from(jwt_secret, 'base64'),
+                Buffer.from(this.jwt_secret, 'base64'),
                 {algorithm:"HS256", expiresIn:"2 days"}
             );
             this.logger.debug(`jwt_output: ${jwt_output}`);
@@ -188,7 +201,7 @@ class DBManager {
         })
     }
     
-    verifyUserJWT(user_jwt, aes_key, jwt_secret, handler)
+    verifyUserJWT(user_jwt, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
             this.logger.error(`Did not connect to database`);
@@ -196,7 +209,7 @@ class DBManager {
             return;
         }
         
-        jwt.verify(user_jwt, Buffer.from(jwt_secret, 'base64'), (jwt_error, payload) => {
+        jwt.verify(user_jwt, Buffer.from(this.jwt_secret, 'base64'), (jwt_error, payload) => {
             this.logger.debug(`jwt_error: ${jwt_error}`);
             this.logger.debug(`payload: ${JSON.stringify(payload,null,2)}`);
             if (jwt_error) {
@@ -208,14 +221,14 @@ class DBManager {
                 this.db.query(get_email, get_email_list, (error, result) => {
                     this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
                     this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-                    if (error) {
+                    if (error || result.length < 1) {
                         handler(new Error("Failed to find user's email by id"), null);
                         return;
                     } else {
                         let encrypted_email = result[0].user_email;
                         let decrypted_email = CryptoJS.AES.decrypt(
                             encrypted_email,
-                            CryptoJS.enc.Base64.parse(aes_key),
+                            CryptoJS.enc.Base64.parse(this.aes_key),
                             {
                                 mode: CryptoJS.mode.CBC,
                                 iv: CryptoJS.enc.Utf8.parse("0000000000000000"),

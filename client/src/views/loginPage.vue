@@ -11,17 +11,18 @@
 
 <script setup>
     async function google() {
-        window.open("http://localhost:3001/auth/google", "_self")
+        window.open("http://localhost:3001/api/auth/google", "_self")
         // await axios.get("http://localhost:3001/auth/google")
     }
 
     async function github() {
-        window.open("http://localhost:3001/auth/github", "_self")
+        window.open("http://localhost:3001/api/auth/github", "_self")
     }
 </script>
 
 <style>
     .container{
+        color: black;
         background-color: aliceblue;
         display: flex;
         flex-direction:column;

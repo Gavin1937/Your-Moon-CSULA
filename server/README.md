@@ -19,12 +19,27 @@
     "log_file": "/path/to/your-moon-server.log",
     "log_level": "debug",
     "db": {
-        "connectionLimit": 10,
         "host": "localhost",
         "port": 3306,
         "user": "username",
         "password": "password",
         "database": "YourMoonDB"
+    },
+    "aws": {
+        "accessKeyId": "SUPER/SECRET?KEY1",
+        "secretAccessKey": "THIS@KEY%IS*EVEN%MORE$SECRET",
+        "region": "us-west-2",
+        "bucket_name": "my-bucket-name"
+    },
+    "oauth":{
+        "github":{
+            "clientId":"somesecretid",
+            "clientSecret":"somesecretsecret"
+        },
+        "google":{
+            "clientId":"somesecretid",
+            "clientSecret":"somesecretsecret"
+        }
     }
 }
 ```

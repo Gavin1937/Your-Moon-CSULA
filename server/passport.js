@@ -1,91 +1,53 @@
+require('dotenv').config();
+var config = null;
+if (process.env.NODE_ENV === "production") {
+	config = require("./config/production.config.json");
+} else {
+	config = require("./config/dev.config.json");
+}
+
+
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
 const passport = require('passport');
-const mysql = require("mysql2");
-const crypto = require("crypto");
-const db = mysql.createPool({
-  connectionLimit: 10,
-  host: "localhost",
-  port: 3306,
-  user: "root",
-  password: "loona",
-  database: "YourMoonDB"
-});
+//const crypto = require("crypto");
+const DBManager = require('./DBManager.js');
+var logger = require('./logger.js')(config.log_file, config.log_level);
+var db = new DBManager(config.db, logger);
+
+console.log(config.oauth.google)
+
 
 
 passport.use(new GitHubStrategy({
-  clientID: process.env['GITHUB_CLIENT_ID'],
-  clientSecret: process.env['GITHUB_CLIENT_SECRET'],
+  clientID: config.oauth.github.clientId,
+  clientSecret: config.oauth.github.clientSecret,
   scope:['user:email'],
-  callbackURL: "/auth/github/callback"
+  callbackURL: "/api/auth/github/callback"
 },
 function(accessToken, refreshToken, profile, cb) {
   const email = profile.emails[0].value;
 //   console.log(email)
 //  done(null,profile)
-findOrCreateUserFromEmail(email, (err, profile) =>{
-  if(err){
-    return cb(err)
-  }
-  return cb(null, profile)
-})
+  db.findOrAddUserByEmail(email);
 }
 ));
 
 passport.use(new GoogleStrategy({
-    clientID: process.env['GOOGLE_CLIENT_ID'],
-    clientSecret: process.env['GOOGLE_CLIENT_SECRET'],
-    callbackURL: "/auth/google/callback"
+    clientID: config.oauth.google.clientId,
+    clientSecret: config.oauth.google.clientSecret,
+    callbackURL: "/api/auth/google/callback"
   },
   function(accessToken, refreshToken, profile, done) {
     // User.findOrCreate({ googleId: profile.id }, function (err, user) {
     //   return cb(err, user);
     // });
     const email = profile.emails[0].value;
-    findOrCreateUserFromEmail(email, (err, profile) =>{
-      if(err){
-        console.log(err)
-        return done(err)
-      }
-      return done(null, profile)
-    })
+    db.findOrAddUserByEmail(email);
     // console.log('Email : '+ profile.emails[0].value);
     // done(null,profile)
   }
 ));
-
- function findOrCreateUserFromEmail(email, done){
-  // const encryptedEmail = encryptEmail(email);
-  const sqlSearch = 'SELECT * FROM Users WHERE user_email = ?'
-  const sqlInsert = 'INSERT INTO Users (user_email) VALUES (?)'
-  
-  try{
-  db.query(sqlSearch, email, (err, row) => {
-    if(err) {
-      console.log("DB error occurred")
-      return done(err)
-    }
-    else if(row.length == 1){
-      return done(null, row);
-    }
-    else{
-      db.query(sqlInsert,email, (err,row) =>{
-        if(err){
-           console.log("DB error")
-           return done(err)
-        }
-        
-        else{ 
-          return done(null, row);
-        }
-      })
-    }
-
-  })
-  }catch(err){
-    console.log(err)
-  }
-}
 
 // function encryptEmail(email) {
 //   const iv = crypto.randomBytes(16);
@@ -122,7 +84,7 @@ passport.use(new GoogleStrategy({
 // })
 
 passport.serializeUser(function(user, done) {
-  console.log(user)
+  logger.info(user, "has been authorized")
   done(null, user);
 });
 

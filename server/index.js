@@ -1,5 +1,5 @@
 require('dotenv').config();
-let config = null;
+var config = null;
 if (process.env.NODE_ENV === "production") {
 	config = require("./config/production.config.json");
 } else {
@@ -7,18 +7,19 @@ if (process.env.NODE_ENV === "production") {
 }
 const express = require("express");
 const app = express();
-const mysql = require("mysql2");
+const AWS = require("aws-sdk");
 const bodyParser = require("body-parser");
-const fs = require("fs");
-const fileUpload = require("express-fileupload");
 const multer = require("multer");
+const multerS3 = require("multer-s3");
 const cors = require("cors");
 const sharp = require("sharp");
 const passport = require("passport");
 const passportSetup = require("./passport");
 const cookieSession = require('cookie-session');
 const authRoutes = require("./routes/auth");
+const DBManager = require('./DBManager.js');
 var logger = require('./logger.js')(config.log_file, config.log_level);
+var db = new DBManager(config.db, logger);
 
 
 // parse application/x-www-form-urlencoded
@@ -28,12 +29,12 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.use(express.json());
-app.use(cors());
 app.use(cookieSession({
 	name:"session",
 	keys:["Your-Moon"],//encryption key,
 	maxAge: 60 * 30 //30 minutes
 }));
+
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -45,11 +46,7 @@ app.use(cors({
 	credentials: true,
 }))
 
-app.use("/auth", authRoutes)
-
-// Setting up connection (Currently, it's set up to our own localhost. There is no server as of now.)
-// Currently, you would have to create your own database called 'lunarimages' in MySQL
-const db = mysql.createPool(config.db);
+app.use("/api/auth", authRoutes)
 
 // file system
 const storeImg = multer.diskStorage({
@@ -72,16 +69,70 @@ const isImg = (req, file, cb) => {
 	}
 };
 
-// multer is a library that allows for image storing
-const upload = multer({
-	storage: storeImg,
-	fileFilter: isImg,
-	limits: { fileSize: config.max_upload_size },
+
+// save to file system
+// ==================================================
+// const storeImg = multer.diskStorage({
+// 	destination: (req, file, cb) => {
+// 		// cb = callback
+// 		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
+// 	},
+// 	filename: (req, file, cb) => {
+// 		cb(null, `image-${Date.now()}.${file.originalname}`);
+// 	},
+// });
+// const upload = multer({
+// 	storage: storeImg,
+// 	fileFilter: isImg,
+// 	limits: { fileSize: config.max_upload_size },
+// });
+// ==================================================
+
+
+// save to aws s3
+// ==================================================
+// Connection to S3 database with full S3 connection
+let aws_config = (({ bucket_name, ...others }) => others)(config.aws)
+AWS.config.update(aws_config);
+
+// Create a connection to yourmoon bucket
+const s3 = new AWS.S3();
+s3.listBuckets((err, data) => {
+	if (err) {
+		logger.error('AWS connection error:', err);
+	} else {
+		logger.info('AWS connection successful.');
+		logger.info(`\n${JSON.stringify(data,null,2)}`);
+	}
 });
 
+// setup multer for upload to s3
+const upload = multer({
+	storage: multerS3({
+		s3: s3,
+		acl: 'public-read',
+		bucket: config.aws.bucket_name,
+		key: function (req, file, cb) {
+			logger.warn("Upload Query: ", req.query);
+			logger.warn("File Information:\n", file);
+			const key = `image-${new Date().toISOString()}.${file.originalname}`;
+			if (key) {
+			  cb(null, key);
+			} else {
+			  cb(new Error("Error generating S3 key"));
+			}
+		  },
+		fileFilter: isImg,
+		limits: { fileSize: config.max_upload_size },
+	})
+});
+// ==================================================
+
+
 function uploadHandler(next) { // outer function takes in "next" request handler
-	return function(req, res) { // returns a request handler uses "next" inside
-		upload.single("lunarImage")(req, res, function(error) { // MulterError handler function
+	return function (req, res) { // returns a request handler uses "next" inside
+		upload.single("lunarImage")(req, res, function (error) { // MulterError handler function
+			logger.debug(`req.file: ${JSON.stringify(req.file, null, 2)}`);
 			if (error && error.code == 'LIMIT_FILE_SIZE' || req.file.size > config.max_upload_size) {
 				logger.warn("IMAGE IS TOO BIG!");
 				res.status(413).json({
@@ -102,11 +153,15 @@ function uploadHandler(next) { // outer function takes in "next" request handler
 	};
 }
 
-app.post("/api/picUpload", uploadHandler( (req, res) => { // pass upload & db handler as "next" function
+//! If we eventually decide to use AWS S3, we should remove this endpoint
+// upload picture file (file upload only)
+app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db handler as "next" function
 	try {
+		// TODO: check JWT in the cookie here
+		
 		const imgFile = req.file;	// gets the file that is uploaded from the client
 		logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
-		
+
 		// additional size check
 		if (imgFile.size > config.max_upload_size) {
 			logger.warn("IMAGE IS TOO BIG!");
@@ -115,44 +170,59 @@ app.post("/api/picUpload", uploadHandler( (req, res) => { // pass upload & db ha
 				message: `IMAGE IS TOO BIG!, UPLOAD LIMIT IS: ${config.max_upload_size}`,
 			});
 		}
+
+		const { upload_uuid } = req.query;
 		
-		// testing purposes to see some info of the file
-		logger.debug(`req.body:\n${JSON.stringify(req.body, null, 2)}`);
-
-		// getting the inputted data from the client through destructuring
-		const { longitude, latitude, time, date } = req.query;
-
-		// testing purposes to see the data
-		logger.debug(`longitude: ${longitude}`);
-		logger.debug(`latitude: ${latitude}`);
-		logger.debug(`time: ${time}`);
-		logger.debug(`date: ${date}`);
-
-		// YOU CAN REMOVE THE COMMENTED CODE RIGHT BELOW
-		// 
-		// if (latitude === '' || longitude === '' || time === '' || date === '') {
-
+		logger.info(`upload_uuid: ${upload_uuid}`);
 		
-    	const imageName = req.file.originalname; // name of the image file
-    	const imageType = req.file.mimetype; // type of the image file
-    	const path = req.file.path; // gets the buffer
+		const imageName = req.file.originalname; // name of the image file
+		const imageType = req.file.mimetype; // type of the image file
+		const path = req.file.path; // gets the buffer
 
 		logger.info(`NAME: ${imageName}`);
 		logger.info(`IMAGE TYPE: ${imageType}`);
 		logger.info(`path: ${path}`);
+		
+		// rm job from the queue
+		db.finishUploadJob(upload_uuid, 1, 0, (error, result) => {
+			if (error) {
+				logger.error("THERE HAS BEEN AN ERROR UPLOADING THE IMAGE!");
+				logger.error(`error:\n${error.toString()}`);
+				res.status(400).json({
+					status: "UPLOAD FAILED ! ❌",
+					message: error.toString(),
+				});
+			}
+			else {
+				// upload success, save file
+				res.status(200).json({
+					status: "UPLOAD SUCCESSFUL ! ✔️"
+				})
+			}
+		});
+	}
+	catch (error) {
+		logger.error(`Exception:\n${error.stack}`);
+		res.status(500).json({
+			status: "UPLOAD FAILED ! ❌",
+			message: "Internal Server Error",
+		});
+	}
+}));
 
-		/*
-			updated SQL statement for now, you would have to create your own database and table on your
-			local machine since this isn't hosted on a server right now
-		*/
-		const sqlInsert =
-			"INSERT INTO LunarImageDB (img_name, img_type, img_file, longitude, latitude, m_time, m_date) values(?, ?, ?, ?, ?, ?, ?)";
-
-		// query the SQL statement with the data and image file that the user provides from the client
-		db.query(sqlInsert, [imageName, imageType, path, longitude, latitude, time, date], (error, result) => {
+// upload picture metadata
+app.post("/api/picMetadata", (req, res) => {
+	try {
+		logger.info("In picMetadata");
+		logger.debug(`req.body:`);
+		logger.debug(JSON.stringify(req.body));
+		
+		// TODO: check JWT in the cookie here
+		
+		db.addImage(req.body.instrument, req.body.image, req.body.moon, (error, result) => {
 			if (error) {
 				logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
-				logger.error(`error:\n${JSON.stringify(error, null, 2)}`);
+				logger.error(`error:\n${error}`);
 				res.status(500).json({
 					status: "UPLOAD FAILED ! ❌",
 					message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
@@ -161,64 +231,40 @@ app.post("/api/picUpload", uploadHandler( (req, res) => { // pass upload & db ha
 			else {
 				logger.info("Successfully inserted into the lunarimages database!");
 				logger.info("IMAGE INSERTED SUCCESSFULLY!");
-				res.status(200).json({
-					status: "UPLOAD SUCCESSFUL ! ✔️",
-					fileName: imgFile.filename,
+				
+				// TODO: use redis for this job queue
+				db.registerUploadJob(config.upload_job_expire, 1, (error, result) => {
+					if (result == null) {
+						res.status(400).json({
+							status: "UPLOAD FAILED ! ❌",
+							message: error.toString(),
+						});
+					}
+					else {
+						res.status(200).json({
+							status: "UPLOAD SUCCESSFUL ! ✔️",
+							upload_uuid: result.upload_uuid,
+							expires: result.expires,
+							// TODO: response with credentials for picture file upload
+						});
+					}
 				});
 			}
 		});
 	}
 	catch (error) {
-		logger.error(`Exception:\n${JSON.stringify(error, null, 2)}`);
+		logger.error(`Exception:\n${error.stack}`);
 		res.status(500).json({
 			status: "UPLOAD FAILED ! ❌",
 			message: "Internal Server Error",
 		});
 	}
-}));
-
-// this is a test route to see if it displays image from the server
-app.get("/api/displayImage/:id", (req, res) => {
-	try {
-		const id = req.params.id; // req.params gives information from the route (in this case, 'id' is part of the route)
-
-		const sqlDisplay = "SELECT img_file FROM LunarImageDB where id = ?";
-
-		db.query(sqlDisplay, [id], (error, result) => {
-			if (error) {
-				throw error;
-			}
-
-			const filePath = result[0].img_file; // getting the specific row of the image file path from the database
-
-			//
-			sharp(filePath)
-				.resize(300) // optional image processing (Resizes the image. No parameters: original size. OR (width, height) OR (single size - this adjusts the size by nxn ))
-				// this toBuffer() function returns a promise
-				.toBuffer() // get the buffer object which contains the processed image data
-				.then((buffer) => {
-					// convert buffer object to base64-encoded string (base64 is text of binary data)   (ex. 01000001 01000010 01000011 -> QUJD)
-					const base64Image = buffer.toString("base64");
-					const imageSrc = `data:image;base64,${base64Image}`; //
-					res.send(`<img src="${imageSrc}" />`); // displays the image with an img tag
-				})
-				.catch((err) => {
-					logger.error(err);
-					res.status(500).send("ThErE iS nO iMaGe To Be DiSpLaYeD!");
-				});
-		});
-	} catch (error) {
-		logger.error(error);
-	}
-
-
 });
 
 // running on port 3001 currently
 app.listen(config.app_port, () => {
+	// start up
 	logger.info(`Start server on port: ${config.app_port}`);
+	logger.info(`Logging Level: ${config.log_level}`);
+	logger.info(`Save log file to:\n${config.log_file}`);
 });
-
-// start up
-logger.info(`Logging Level: ${config.log_level}`);
-logger.info(`Save log file to: ${config.log_file}`);

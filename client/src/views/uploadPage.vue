@@ -40,6 +40,7 @@ let data = reactive({
 	// Tracks time input if there isn't meta data
 	time : '',
 	file : null,
+	fileType : '',
 	imageDataUrl : null,
 	showCropper : false,
 	croppedImage : null,
@@ -99,15 +100,10 @@ function checkFileType(file) {
   reader.onload = (e) => {
     let fileType = "";
     let arr = new Uint8Array(e.target.result).subarray(0, 16);
-	// console.log(arr8bit)
-	// let dataview = new DataView(arr8bit.buffer);
-	// let arr32be = dataview.getInt32(0);
-	// console.log(arr32be)
 
     for (let i = 0; i < arr.length; i++) {
       header += arr[i].toString(16);
     }
-	// console.log(header)
 
     //hexadecimal representation of those file extensions. References: https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
     //https://en.wikipedia.org/wiki/List_of_file_signatures
@@ -124,6 +120,7 @@ function checkFileType(file) {
       data.message = "File type not accepted";
     }
 
+	data.fileType = fileType;
     data.isValidFileType = fileType !== "invalid" ? true : false;
   };
   reader.readAsArrayBuffer(file);
@@ -248,7 +245,7 @@ async function uploadCroppedImage() {
 			});
 		});
 		const formData = new FormData();
-		formData.append("lunarImage", imgFile, '.jpg');
+		formData.append("lunarImage", imgFile, data.fileType);
 		// make post request to upload image to database
 		const res = await axios.post(`${config.backend_url}/api/picUpload`, formData, {
 			params: {

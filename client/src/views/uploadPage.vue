@@ -14,11 +14,12 @@ import ExifReader from 'exifreader';
 import {ref, reactive} from "vue";
 import MoonRegistration from '../moon-registration';
 import config from '../../config/config.json'
+import { nearestCity } from 'cityjs'
 
 
 // This is the ref to the cropper DOM element
 const cropr = ref(null);
-
+// const API_KEY = 'AIzaSyCotXjJ5FcRumeP5tvh_VQDoAFZrdXYx_Y'
 let data = reactive({
 	// "META DATA"
 	image : '',
@@ -31,6 +32,7 @@ let data = reactive({
 	isValidFileType: false,
 	latitude : '',
 	longitude : '',
+	invalidCoords: null,
 	altitude : '',
 	timeStamp : '',
 	// Data retrieved from RunMoonDetect()
@@ -40,11 +42,51 @@ let data = reactive({
 	// Tracks time input if there isn't meta data
 	time : '',
 	file : null,
+	iframe:{
+		src: ""
+	},
 	imageDataUrl : null,
 	showCropper : false,
 	croppedImage : null,
+	mapReady:false
+
 })
 
+//function when user clicks no -that location on google maps is wrong
+function closeMapAndResetLatLonFields(){
+	data.mapReady = false;
+	data.latitude = '';
+	data.longitude = '';
+}
+
+//lat range -90 - 90, lon -180 - 180, would cause error on Google Map if not valid lat and lon
+function validateCoords(){
+	if(data.latitude >= -90 && data.latitude <= 90){
+		if(data.longitude >= -180 && data.longitude <= 180){
+			data.message = ""
+			showCoordsOnMap()
+		}
+	}else{
+		data.invalidCoords = true;
+		data.message = "Invalid coordinates";
+		data.latitude = "";
+		data.longitude = "";
+	}
+	
+}
+async function showCoordsOnMap(){
+	try{
+		const city =  await nearestCity({latitude: data.latitude, longitude: data.longitude});
+		const qParam = city.name.replace(" ", "+");
+		data.iframe.src= `https://www.google.com/maps/embed/v1/place?key=${config.GOOGLE_API_KEY}&q=${qParam}&center=${data.latitude},${data.longitude}`;
+		data.mapReady = true;
+
+	}catch(err){
+		console.log(err)
+	}
+	
+	
+}
 function getScaledCropData(){
 	// Gets cropBoxData and scales it up to the scale of the original image.
 	try{
@@ -194,6 +236,7 @@ async function updateMetaData(){
 			data.make = tags.Make.description;
 			data.model = tags.Model.description;
 		}
+
 	} catch (error) {
 		console.log(error);
 	}
@@ -257,6 +300,7 @@ async function uploadCroppedImage() {
 </script>
 
 <!-- eslint-disable prettier/prettier -->
+
 <template>
 	<body class="background">
 		<div class="container d-flex justify-content-center align-items-center">
@@ -280,8 +324,22 @@ async function uploadCroppedImage() {
 				:scaleY = 1
 				@ready="onCropperReady" />
 			</div>
-		<div class="status-message" v-if="fileSizeExceeded || !isValidFileType">
+		<div class="status-message" v-if="data.fileSizeExceeded || !data.isValidFileType || data.invalidCoords">
 			{{ data.message }}
+		</div>
+		<div v-if="data.mapReady">
+			<iframe
+  			width="450"
+  			height="250"
+  			frameborder="0" style="border:0"
+  			referrerpolicy="no-referrer-when-downgrade"
+  			:src="data.iframe.src"
+			alt="Google unable to find location"
+  			allowfullscreen>
+			</iframe>
+			<p class="status-message">Can you confirm location from where the Moon shot was taken?</p>
+			<button @click="uploadCroppedImage">Yes</button>
+			<button @click="closeMapAndResetLatLonFields">No</button>
 		</div>
 		<div v-if="data.croppedImage">
 			<div class="cent">
@@ -310,7 +368,7 @@ async function uploadCroppedImage() {
 												Latitude
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="data.latitude" />
+												<input id="lat" class="input" type="number" v-model="data.latitude" min="-90" max="90" required />
 											</div>
 										</div>
 									</div>
@@ -320,7 +378,7 @@ async function uploadCroppedImage() {
 												Longitude
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="data.longitude" />
+												<input id="lon" class="input" type="number" v-model="data.longitude" min="-180" max="180" required />
 											</div>
 										</div>
 									</div>
@@ -330,7 +388,7 @@ async function uploadCroppedImage() {
 												Altitude 
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="data.altitude" />
+												<input class="input" type="text" v-model="data.altitude" required />
 											</div>
 										</div>
 									</div>
@@ -343,7 +401,7 @@ async function uploadCroppedImage() {
 												Date
 											</label>
 											<div class="control">
-												<input class="input" type="date" v-model="data.date" />
+												<input class="input" type="date" v-model="data.date" required />
 											</div>
 										</div>
 									</div>
@@ -353,7 +411,7 @@ async function uploadCroppedImage() {
 												Time
 											</label>
 											<div class="control">
-												<input class="input" type="time" v-model="data.time" />
+												<input class="input" type="time" v-model="data.time" required/>
 											</div>
 										</div>
 									</div>
@@ -363,7 +421,7 @@ async function uploadCroppedImage() {
 												Instrument Make
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="data.make" />
+												<input class="input" type="text" v-model="data.make" required/>
 											</div>
 										</div>
 									</div>
@@ -373,7 +431,7 @@ async function uploadCroppedImage() {
 												Instrument Model
 											</label>
 											<div class="control">
-												<input class="input" type="text" v-model="data.model" />
+												<input class="input" type="text" v-model="data.model" required/>
 											</div>
 										</div>
 									</div>
@@ -390,7 +448,7 @@ async function uploadCroppedImage() {
 						</p>
 					</div>
 					<div v-if="data.croppedImage">
-						<button type="button" class="btn btn-primary" @click="uploadCroppedImage">Upload</button>
+						<button type="button" class="btn btn-primary" @click="validateCoords">Upload</button>
 					</div>
 				</div>
 			</div>

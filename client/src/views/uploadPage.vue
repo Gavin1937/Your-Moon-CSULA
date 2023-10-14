@@ -35,6 +35,7 @@ let data = reactive({
 	timeStamp : '',
 	// Data retrieved from RunMoonDetect()
 	moon_position : null,
+	moon_position_circle : null,
 	// Tracks date input if there isn't meta data
 	date : '',
 	// Tracks time input if there isn't meta data
@@ -220,8 +221,9 @@ async function RunDetectMoon(_fileObject, _type="square") {
 		data.message = err;
 	}
 }
-async function onMoonPositionUpdate(new_position) {
+async function onMoonPositionUpdate(new_position_circle, new_position) {
 			console.log('moon_position:', new_position);
+			data.moon_position_circle = {x:new_position_circle.x, y:new_position_circle.y, radius:new_position_circle.radius};
 			if(new_position.type == "square"){
 				data.moon_position = {x:new_position.x, y:new_position.y, width:new_position.width}
 				console.log(data.moon_position)
@@ -230,28 +232,56 @@ async function onMoonPositionUpdate(new_position) {
 // function that gets the cropped image and sends it to server-side
 async function uploadCroppedImage() {
 	try {
-		const imgFile = await new Promise(resolve => {
-			cropr.value.getCroppedCanvas().toBlob(img => {
-				resolve(img);
-			});
-		});
-		const formData = new FormData();
-		formData.append("lunarImage", imgFile, data.fileType);
 		// make post request to upload image to database
-		const res = await axios.post(`${config.backend_url}/api/picUpload`, formData, {
-			params: {
-				latitude: data.latitude,
-				longitude: data.longitude,
-				time: data.time,
-				date: data.date,
+		let metadata_params = {
+			"instrument": {
+				"inst_type": "phone", // TODO: add additional drop-down menu for instrument type. ("phone", "camera", "phone+telescope", "camera+telescope")
+				"inst_make": data.make,
+				"inst_model": data.model
 			},
-		});
+			"image": {
+				"img_name": data.file.name,
+				"img_type": data.file.type,
+				"img_uri": `./${data.file.name}`, // TODO: file uri should be determined by the server
+				"img_altitude": data.altitude,
+				"img_longitude": data.longitude,
+				"img_latitude": data.latitude,
+				"img_timestamp": Math.floor((new Date()).getTime()/1000), // TODO: derive image's original unix timestamp when taken from geolocation & datetime
+			},
+			"moon": {
+				"moon_detect_flag": 1,
+				"moon_exist_flag": 1,
+				"moon_loc_x": data.moon_position_circle.x,
+				"moon_loc_y": data.moon_position_circle.y,
+				"moon_loc_r": data.moon_position_circle.radius
+			}
+		}
+		const meta_res = await axios.post(
+			`${config.backend_url}/api/picMetadata`,
+			metadata_params,
+			{ withCredentials: true, }
+		);
 		
-		const { status } = res.data;
-		console.log(`status: ${status}`);
+		if (meta_res.status == 200) {
+			const imgFile = await new Promise(resolve => {
+				cropr.value.getCroppedCanvas().toBlob(img => {
+					resolve(img);
+				});
+			});
+			const formData = new FormData();
+			formData.append("lunarImage", imgFile, data.fileType);
+			const upload_res = await axios.post(
+				`${config.backend_url}/api/picUpload?upload_uuid=${meta_res.data.upload_uuid}`,
+				formData,
+				{ withCredentials: true }
+			);
+			
+			const { status } = upload_res.data;
+			console.log(`status: ${status}`);
+			
+			data.message = status;
+		}
 		
-		data.message = status;
-
 	} catch (err) {
 		data.message = err;
 	}

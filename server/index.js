@@ -25,7 +25,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+	credentials: true,
+	origin: config.cors_origin_whitelist
+}));
 app.use(cookieParser());
 
 
@@ -128,8 +131,11 @@ function uploadHandler(next) { // outer function takes in "next" request handler
 app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db handler as "next" function
 	try {
 		logger.debug(`req.cookies: ${JSON.stringify(req.cookies,null,2)}`);
-		let jwt_token = req.cookies.token;
+		logger.debug(`req.headers: ${JSON.stringify(req.headers,null,2)}`);
+		// backend will take jwt from either cookies.token or headers.authorization
+		let jwt_token = Object.keys(req.cookies).length <= 0 ? req.headers.authorization : req.cookies.token;
 		if (!jwt_token || jwt_token.length <= 0) {
+			logger.warn("UNAUTHORIZED ACCESS!");
 			res.status(401).json({
 				status: "UNAUTHORIZED ACCESS!",
 				message: "Please login to access this endpoint.",
@@ -209,8 +215,11 @@ app.post("/api/picMetadata", (req, res) => {
 		logger.debug(JSON.stringify(req.body));
 		
 		logger.debug(`req.cookies: ${JSON.stringify(req.cookies,null,2)}`);
-		let jwt_token = req.cookies.token;
+		logger.debug(`req.headers: ${JSON.stringify(req.headers,null,2)}`);
+		// backend will take jwt from either cookies.token or headers.authorization
+		let jwt_token = Object.keys(req.cookies).length <= 0 ? req.headers.authorization : req.cookies.token;
 		if (!jwt_token || jwt_token.length <= 0) {
+			logger.warn("UNAUTHORIZED ACCESS!");
 			res.status(401).json({
 				status: "UNAUTHORIZED ACCESS!",
 				message: "Please login to access this endpoint.",

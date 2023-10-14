@@ -52,7 +52,8 @@ let MoonRegistration = {
                 instance._mrwasm_destroy_image_buffer(p);
                 
                 
-                let ret = { "type": "circle", "x": circleDataList[0], "y": circleDataList[1], "radius": circleDataList[2] };
+                let ret = null;
+                let ret_circle = { "type": "circle", "x": circleDataList[0], "y": circleDataList[1], "radius": circleDataList[2] };
                 
                 // modify result base on retType
                 if (retType === 'square') {
@@ -86,7 +87,7 @@ let MoonRegistration = {
                 }
                 
                 // set ret value via callback function
-                callback(ret);
+                callback(ret_circle, ret);
             };
         }).then(result => result);
     }

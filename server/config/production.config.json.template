@@ -6,6 +6,9 @@
     "log_level": "info",
     "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
     "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
+    "cors_origin_whitelist": [
+        "http://localhost:5173"
+    ],
     "db": {
         "host": "localhost",
         "port": 3306,

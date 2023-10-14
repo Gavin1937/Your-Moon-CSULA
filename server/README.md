@@ -20,6 +20,9 @@
     "log_level": "debug",
     "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
     "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
+    "cors_origin_whitelist": [
+        "http://localhost:5173"
+    ],
     "db": {
         "host": "localhost",
         "port": 3306,
@@ -44,7 +47,9 @@ from base64 import b64encode
 print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8'))
 ```
 
-1. you can use `.template` files under `src/server/config/` as your starting point
+* Note that `cors_origin_whitelist` is a list of urls to the the frontend, they are whitelist for cors cross origin protection. This is because we need to send credentials (cookie) from the frontend to backend.
+
+3. you can use `.template` files under `src/server/config/` as your starting point
 
 
 ## Deploy

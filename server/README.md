@@ -35,6 +35,16 @@
         "secretAccessKey": "THIS@KEY%IS*EVEN%MORE$SECRET",
         "region": "us-west-2",
         "bucket_name": "my-bucket-name"
+    },
+    "oauth":{
+        "github":{
+            "clientId":"somesecretid",
+            "clientSecret":"somesecretsecret"
+        },
+        "google":{
+            "clientId":"somesecretid",
+            "clientSecret":"somesecretsecret"
+        }
     }
 }
 ```

@@ -20,7 +20,8 @@
     
   </body>
 
-
+  <router-link to="/">About</router-link>
+  <router-link to="/login">Login</router-link>
 
 
   

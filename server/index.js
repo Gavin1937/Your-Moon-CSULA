@@ -16,6 +16,10 @@ const cookieParser = require("cookie-parser");
 const DBManager = require('./DBManager.js');
 var logger = require('./logger.js')(config.log_file, config.log_level);
 var db = new DBManager(config.db, config.aes_key, config.jwt_secret, logger);
+const passport = require("passport");
+const passportSetup = require("./passport");
+const session = require('express-session');
+const authRoutes = require("./routes/auth");
 
 
 // parse application/x-www-form-urlencoded
@@ -25,11 +29,23 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.use(express.json());
+
+app.use(session({
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}));
+
+
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(cors({
 	credentials: true,
 	origin: config.cors_origin_whitelist
 }));
 app.use(cookieParser());
+app.use("/api/auth", authRoutes)
 
 
 // file filter to only allow image file types ()
@@ -332,11 +348,12 @@ app.get("/api/verifyUser", (req, res) => {
 	try {
 		logger.info("In verifyUser");
 		logger.debug(`req.body:`);
-		logger.debug(JSON.stringify(req.body));
+		//logger.debug(JSON.stringify(req.body));
 		
 		// user_jwt is inside http header: authorization
-		const user_jwt = req.headers.authorization;
-		logger.debug(`user_jwt: ${user_jwt}`);
+		let user_jwt = req.cookies.token;
+		logger.debug("user_jwt")
+		logger.info(`user_jwt: ${user_jwt}`);
 		
 		db.verifyUserJWT(user_jwt, (error, result) => {
             logger.debug(`result: ${JSON.stringify(result,null,2)}`);

@@ -86,21 +86,22 @@ function checkFileType(file) {
       let fileType = "";
       let arr = new Uint8Array(e.target.result).subarray(0, 16);
 
-      for (let i = 0; i < arr.length; i++) {
-        header += arr[i].toString(16);
-      }
+      // for (let i = 0; i < arr.length; i++) {
+      //   header += arr[i].toString(16);
+      // }
+      let dataview = new DataView(arr.buffer);
 
       // hexadecimal representation of those file extensions.
       // References:
       // https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
       // https://en.wikipedia.org/wiki/List_of_file_signatures
-      if (header.includes("424d")) {
+      if (dataview.getUint16(0,false) == 0x424d) {
         fileType = "bmp";
-      } else if (header.includes("ffd8ff")) {
+      } else if (dataview.getUint32(0,false) & 0xffd8ff00 > 0) {
         fileType = "jpg";
-      } else if (header.includes("504e47")) {
+      } else if (dataview.getUint32(0,false) & 0x504e4700 > 0) {
         fileType = "png";
-      } else if (header.includes("52494646") && header.includes("57454250")) {
+      } else if (dataview.getUint32(0,false) == 0x52494646 && dataview.getUint32(8,false) == 0x57454250) {
         fileType = "webp";
       } else {
         fileType = "invalid";
@@ -237,9 +238,9 @@ async function uploadCroppedImage() {
         "img_name": data.file.name,
         "img_type": data.file.type,
         "img_uri": `./${data.file.name}`, // TODO: file uri should be determined by the server
-        "img_altitude": data.altitude,
-        "img_longitude": data.longitude,
-        "img_latitude": data.latitude,
+        "img_altitude": Number.parseFloat(data.altitude),
+        "img_longitude": Number.parseFloat(data.longitude),
+        "img_latitude": Number.parseFloat(data.latitude),
         "img_timestamp": Math.floor((new Date()).getTime() / 1000), // TODO: derive image's original unix timestamp when taken from geolocation & datetime
       },
       "moon": {

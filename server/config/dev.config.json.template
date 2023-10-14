@@ -22,14 +22,14 @@
         "region": "us-west-2",
         "bucket_name": "my-bucket-name"
     },
-        "oauth":{
-            "github":{
-                "clientId":"somesecretid",
-                "clientSecret":"somesecretsecret"
-            },
-            "google":{
-                "clientId":"somesecretid",
-                "clientSecret":"somesecretsecret"
-            }
+    "oauth":{
+        "github":{
+            "clientId":"somesecretid",
+            "clientSecret":"somesecretsecret"
+        },
+        "google":{
+            "clientId":"somesecretid",
+            "clientSecret":"somesecretsecret"
         }
+    }
 }

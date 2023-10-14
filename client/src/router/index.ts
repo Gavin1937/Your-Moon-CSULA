@@ -1,35 +1,58 @@
+
 import { createRouter, createWebHistory } from "vue-router";
 import uploadPage from "../views/uploadPage.vue";
 import loginPage from "../views/loginPage.vue";
 
-
-// const router = createRouter({
-//   history: createWebHistory(import.meta.env.BASE_URL),
-//   routes: [
-//     {
-//       path: "/",
-//       name: "upload",
-//       component: () => import("../views/uploadPage.vue"),
-//     },
-//     {
-//       path: "/login",
-//       name: "login",
-//       component: () => import("../views/loginPage.vue")
-//     }
-//   ],
-// });
-
-// export default router;
-
+import axios from 'axios';
+import config from "../../config/config.json";
 const routes = [
-    {path: '/upload', name: 'Upload', component: uploadPage},
+    {path: '/upload', name: 'Upload', component: uploadPage, meta:{requiresAuth:true}},
     {path: '/login', name: 'Login', component: loginPage}
 ]
+
+const isAuthenticated = async () => {
+  try {
+    const res = await axios.get(config.backend_url + '/api/verifyUser', {
+      withCredentials: true
+    });
+
+    if (res.status === 200) {
+      console.log('Call succeeded');
+      return true;
+    } else {
+      console.error('Failed to check authentication');
+      return false;
+    }
+
+  } catch (error) {
+    console.error('Failed to check authentication', error);
+    return false;
+  }
+};
+  
+
+
 
 const router = createRouter({
     history: createWebHistory(),
     routes
 })
 
+
+router.beforeEach(async (to, from, next) => {
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      next({
+        path: '/login',
+        query: { redirect: to.fullPath }
+      });
+    } else {
+      next();
+    }
+  } else {
+    next(); 
+  }
+});
 export default router
 

@@ -65,46 +65,6 @@ class DBManager {
         }
     }
     
-    findOrAddUserByEmail(email, done)
-    {
-        const sqlSearch = 'SELECT * FROM Users WHERE user_email = ?';
-        const sqlInsert = 'INSERT INTO Users (user_email) VALUES (?)';
-        if (this.establishedConnection == null || this.db == null) {
-            this.logger.error(`Did not connect to database`);
-            handler(new Error(`Did not connect to database`), null);
-            return;
-        }
-        this.logger.info(email);
-        try{
-            this.db.query(sqlSearch, email, (err, row) => {
-              if(err) {
-                this.logger.error("DB error occurred");
-                return done(err);
-              }
-              else if(row.length == 1){
-                return done(null, row);
-              }
-              else{
-                this.db.query(sqlInsert,email, (err,row) =>{
-                  if(err){
-                    this.logger.error("DB error occured");
-                    return done(err);
-                  }
-                  
-                  else{ 
-                    return done(null, row);
-                  }
-                })
-              }
-          
-            })
-            }catch(err){
-                this.logger.error("DB error occured1")
-                this.logger.error(err.stack);
-            }
-    
-    }
-
     addImage(instrument, image, moon, handler)
     {
         if (this.establishedConnection == null || this.db == null) {

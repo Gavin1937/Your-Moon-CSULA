@@ -1,22 +1,21 @@
 <!-- eslint-disable prettier/prettier -->
 <script setup>
-import Cropper from 'vue-cropperjs';
-import 'cropperjs/dist/cropper.css';
+import Cropper from "vue-cropperjs";
+import "cropperjs/dist/cropper.css";
 import axios from "axios";
-import ExifReader from 'exifreader';
+import ExifReader from "exifreader";
 import { ref, reactive } from "vue";
-import MoonRegistration from '../moon-registration';
-import config from '../../config/config.json'
-
+import MoonRegistration from "../moon-registration";
+import config from "../../config/config.json";
 
 // This is the ref to the cropper DOM element
 const cropr = ref(null);
 
 let data = reactive({
   // "META DATA"
-  image: '',
+  image: "",
   // Message for displaying success or failure when uploading
-  message: '',
+  message: "",
   // Tracks if image has meta data
   hasExif: true,
   maxFileSize: 30 * 1024 * 1024, //max file size 30MB
@@ -48,15 +47,16 @@ function getScaledCropData() {
     const { left, top, width, height } = cropr.value.getCropBoxData();
     // The crop box x, y, width and height are all scaled from the canvas scale to the original image scale.
     return {
-      x: left * canvasNaturalWidth / canvasWidth,
-      y: top * canvasNaturalWidth / canvasWidth,
-      width: width * canvasNaturalWidth / canvasWidth,
-      height: height * canvasNaturalWidth / canvasWidth,
+      x: (left * canvasNaturalWidth) / canvasWidth,
+      y: (top * canvasNaturalWidth) / canvasWidth,
+      width: (width * canvasNaturalWidth) / canvasWidth,
+      height: (height * canvasNaturalWidth) / canvasWidth,
     };
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
 }
+
 async function onCropperReady() {
   try {
     console.log(data.moon_position.x)
@@ -66,14 +66,14 @@ async function onCropperReady() {
     const { width, naturalWidth } = cropr.value.getCanvasData();
     // left, top, width and height are all scaled by width/naturalWidth.
     const initialCropData = {
-      left: data.moon_position.x * width / naturalWidth,
-      top: data.moon_position.y * width / naturalWidth,
-      width: data.moon_position.width * width / naturalWidth,
-      height: data.moon_position.width * width / naturalWidth,
+      left: (data.moon_position.x * width) / naturalWidth,
+      top: (data.moon_position.y * width) / naturalWidth,
+      width: (data.moon_position.width * width) / naturalWidth,
+      height: (data.moon_position.width * width) / naturalWidth,
     };
     cropr.value.setCropBoxData(initialCropData);
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
 }
 
@@ -145,7 +145,7 @@ async function onFileChange(e) {
   }
 }
 
-// Credit goes to Youssef El-zein. 
+// Credit goes to Youssef El-zein.
 // This is modified code from his work on the MoonTrek site.
 async function updateMetaData() {
   try {
@@ -202,10 +202,10 @@ async function updateMetaData() {
 //   * _type       => string type, specifying the return type of api.
 //                    If _type === 'circle'
 //                    return: { "type": "circle", "x": int, "y": int, "radius": int }
-// 
+//
 //                    If _type === 'square'
 //                    return: { "type": "square", "x": int, "y": int, "width": int }
-// 
+//
 //                    If _type === 'rectangle'
 //                    return: { "type": "rectangle", "x1": int, "y1": int, "x2": int, "y2": int }
 //   * returns from MoonDetection() will be receive & process by this.onMoonPositionUpdatse()
@@ -288,16 +288,32 @@ async function uploadCroppedImage() {
   <body class="background">
     <div class="container d-flex justify-content-center align-items-center">
       <div class="padding1">
-        <h2 class="txt up1">
-          Upload and crop your image.
-        </h2>
-        <br>
-        <input type="file" accept=".jpg,.png,.webp,.bmp,.jpeg" ref="lunarImage" @change="onFileChange" />
-        <br>
-        <br>
-        <cropper class="resize" ref="cropr" v-if="data.showCropper && data.moon_position" :src="data.imageDataUrl"
-          :zoomOnWheel="false" :zoomable="false" :zoomOnTouch="false" :movable="false" :viewMode=3 :restore=false
-          :aspectRatio=1 :scaleX=1 :scaleY=1 @ready="onCropperReady" />
+        <h2 class="txt up1">Upload and crop your image.</h2>
+        <br />
+        <input
+          type="file"
+          accept=".jpg,.png,.webp,.bmp,.jpeg"
+          ref="lunarImage"
+          @change="onFileChange"
+        />
+        <br />
+        <br />
+        <cropper
+          class="resize"
+          ref="cropr"
+          v-if="data.showCropper && data.moon_position"
+          :src="data.imageDataUrl"
+          :zoomOnWheel="false"
+          :zoomable="false"
+          :zoomOnTouch="false"
+          :movable="false"
+          :viewMode="3"
+          :restore="false"
+          :aspectRatio="1"
+          :scaleX="1"
+          :scaleY="1"
+          @ready="onCropperReady"
+        />
       </div>
       <div class="status-message" v-if="fileSizeExceeded || !isValidFileType">
         {{ data.message }}
@@ -314,7 +330,6 @@ async function uploadCroppedImage() {
                       <span class="file-icon">
                         <font-awesome-icon icon="fa-solid fa-file-arrow-up" />
                       </span>
-
                     </span>
                   </label>
                 </div>
@@ -325,31 +340,37 @@ async function uploadCroppedImage() {
                 <div class="columns is-centered">
                   <div class="column is-one-fifth">
                     <div class="field">
-                      <label class="label">
-                        Latitude
-                      </label>
+                      <label class="label"> Latitude </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.latitude" />
+                        <input
+                          class="input"
+                          type="number"
+                          v-model="data.latitude"
+                        />
                       </div>
                     </div>
                   </div>
                   <div class="column is-one-fifth">
                     <div class="field">
-                      <label class="label">
-                        Longitude
-                      </label>
+                      <label class="label"> Longitude </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.longitude" />
+                        <input
+                          class="input"
+                          type="number"
+                          v-model="data.longitude"
+                        />
                       </div>
                     </div>
                   </div>
                   <div class="column is-one-fifth">
                     <div class="field">
-                      <label class="label">
-                        Altitude
-                      </label>
+                      <label class="label"> Altitude </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.altitude" />
+                        <input
+                          class="input"
+                          type="number"
+                          v-model="data.altitude"
+                        />
                       </div>
                     </div>
                   </div>
@@ -358,9 +379,7 @@ async function uploadCroppedImage() {
                 <div class="columns is-centered">
                   <div class="column is-one-fifth">
                     <div class="field">
-                      <label class="label">
-                        Date
-                      </label>
+                      <label class="label"> Date </label>
                       <div class="control">
                         <input class="input" type="date" v-model="data.date" />
                       </div>
@@ -368,9 +387,7 @@ async function uploadCroppedImage() {
                   </div>
                   <div class="column is-one-fifth">
                     <div class="field">
-                      <label class="label">
-                        Time
-                      </label>
+                      <label class="label"> Time </label>
                       <div class="control">
                         <input class="input" type="time" v-model="data.time" />
                       </div>
@@ -378,9 +395,7 @@ async function uploadCroppedImage() {
                   </div>
                   <div class="column is-one-fifth">
                     <div class="field">
-                      <label class="label">
-                        Instrument Make
-                      </label>
+                      <label class="label"> Instrument Make </label>
                       <div class="control">
                         <input class="input" type="text" v-model="data.make" />
                       </div>
@@ -388,9 +403,7 @@ async function uploadCroppedImage() {
                   </div>
                   <div class="column is-one-fifth">
                     <div class="field">
-                      <label class="label">
-                        Instrument Model
-                      </label>
+                      <label class="label"> Instrument Model </label>
                       <div class="control">
                         <input class="input" type="text" v-model="data.model" />
                       </div>
@@ -409,15 +422,19 @@ async function uploadCroppedImage() {
             </p>
           </div>
           <div v-if="data.croppedImage">
-            <button type="button" class="btn btn-primary" @click="uploadCroppedImage">Upload</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              @click="uploadCroppedImage"
+            >
+              Upload
+            </button>
           </div>
         </div>
       </div>
     </div>
   </body>
 </template>
-  
-
 
 <!-- eslint-disable prettier/prettier -->
 <style>
@@ -449,8 +466,16 @@ async function uploadCroppedImage() {
 }
 
 .container {
+  display: flex;
   max-width: 800px;
   margin: 0 auto;
+}
+
+@media (min-width: 180px) and (max-width: 900px) {
+  .container {
+    /* flex-wrap: wrap; */
+    flex-direction: column;
+  }
 }
 
 .preview {
@@ -471,7 +496,7 @@ async function uploadCroppedImage() {
 
 .crop button {
   padding: 10px;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
   border: none;
   cursor: pointer;
@@ -490,7 +515,7 @@ async function uploadCroppedImage() {
 
 .submit input[type="submit"] {
   padding: 10px;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
   border: none;
   cursor: pointer;
@@ -498,7 +523,7 @@ async function uploadCroppedImage() {
 }
 
 .submit input[type="submit"]:hover {
-  background-color: #ffff
+  background-color: #ffff;
 }
 
 .colo1 {
@@ -518,7 +543,6 @@ async function uploadCroppedImage() {
   background-size: cover;
 }
 
-
 #image-upload,
 .status-message {
   font-size: 1.2rem;
@@ -537,8 +561,7 @@ async function uploadCroppedImage() {
 
 @media (min-width: 180px) and (max-width: 768px) {
   #image-upload #manual-form {
-    padding-left: 4rem;
-    padding-right: 4rem;
+    margin-top: 0.5rem;
   }
 }
 </style>

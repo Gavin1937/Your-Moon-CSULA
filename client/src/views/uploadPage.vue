@@ -97,9 +97,9 @@ function checkFileType(file) {
       // https://en.wikipedia.org/wiki/List_of_file_signatures
       if (dataview.getUint16(0,false) == 0x424d) {
         fileType = "bmp";
-      } else if (dataview.getUint32(0,false) & 0xffd8ff00 > 0) {
+      } else if (dataview.getUint32(0,true) & 0x00ffd8ff > 0) {
         fileType = "jpg";
-      } else if (dataview.getUint32(0,false) & 0x504e4700 > 0) {
+      } else if (dataview.getUint32(0,true) & 0x00474e50 > 0) {
         fileType = "png";
       } else if (dataview.getUint32(0,false) == 0x52494646 && dataview.getUint32(8,false) == 0x57454250) {
         fileType = "webp";

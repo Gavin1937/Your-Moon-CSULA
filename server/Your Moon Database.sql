@@ -1,11 +1,14 @@
 
 CREATE DATABASE IF NOT EXISTS YourMoonDB;
 
+USE YourMoonDB;
+
 CREATE TABLE IF NOT EXISTS Users(
     user_id             INT              AUTO_INCREMENT PRIMARY KEY NOT NULL,
     user_email          VARCHAR(256)     NOT NULL, -- encrypted email
     user_upload_count   INT              DEFAULT 0,
     user_flag_count     INT              DEFAULT 0,
+    CONSTRAINT unique_inst UNIQUE (user_email)
 );
 
 CREATE TABLE IF NOT EXISTS Instruments(
@@ -13,13 +16,15 @@ CREATE TABLE IF NOT EXISTS Instruments(
     inst_type           VARCHAR(25)      NOT NULL, -- "phone", "camera", "phone+telescope", "camera+telescope"
     inst_make           VARCHAR(256)     NULL,
     inst_model          VARCHAR(256)     NULL,
+    CONSTRAINT unique_inst UNIQUE (inst_type,inst_make,inst_model)
     -- other instrument metadata...
 );
 
 CREATE TABLE IF NOT EXISTS Images(
     img_id              INT              AUTO_INCREMENT PRIMARY KEY NOT NULL,
-    inst_id             INT              FOREIGN KEY NOT NULL,
+    inst_id             INT              NOT NULL,
     metadata_id         INT              DEFAULT -1, -- reserved id
+    FOREIGN KEY (inst_id) REFERENCES Instruments(inst_id),
     
     -- image metadata
     img_name            VARCHAR(50)      NOT NULL,
@@ -35,5 +40,11 @@ CREATE TABLE IF NOT EXISTS Images(
     moon_exist_flag     BOOL             NULL,     -- flag, img contains moon
     moon_loc_x          INT              NULL,     -- circle center x
     moon_loc_y          INT              NULL,     -- circle center y
-    moon_loc_r          INT              NULL,     -- circle radius
+    moon_loc_r          INT              NULL      -- circle radius
+);
+
+CREATE TABLE IF NOT EXISTS UploadJobs(
+    uuid                BINARY(16)       PRIMARY KEY NOT NULL,
+    expires             INT              NOT NULL,
+    user_id             INT              NOT NULL
 );

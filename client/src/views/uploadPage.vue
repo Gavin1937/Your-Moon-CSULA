@@ -1,10 +1,3 @@
-<!--
-	TODO
-	- figureout the how to upload file name form the index.js file.
-	- figureout how to upload the correct file datatype form the index.js file.
-	- restrict users from uploading any file type other than jpg. 
-	- add not null.
--->
 <!-- eslint-disable prettier/prettier -->
 <script setup>
 import Cropper from "vue-cropperjs";
@@ -28,21 +21,23 @@ let data = reactive({
   maxFileSize: 30 * 1024 * 1024, //max file size 30MB
   fileSizeExceeded: false,
   isValidFileType: false,
-  latitude: "",
-  longitude: "",
-  altitude: "",
-  timeStamp: "",
+  latitude: '',
+  longitude: '',
+  altitude: '',
+  timeStamp: '',
   // Data retrieved from RunMoonDetect()
   moon_position: null,
+  moon_position_circle: null,
   // Tracks date input if there isn't meta data
-  date: "",
+  date: '',
   // Tracks time input if there isn't meta data
-  time: "",
+  time: '',
   file: null,
+  fileType: '',
   imageDataUrl: null,
   showCropper: false,
   croppedImage: null,
-});
+})
 
 function getScaledCropData() {
   // Gets cropBoxData and scales it up to the scale of the original image.
@@ -64,7 +59,7 @@ function getScaledCropData() {
 
 async function onCropperReady() {
   try {
-    console.log(data.moon_position.x);
+    console.log(data.moon_position.x)
     // The Cropper canvas scales down so the crop box needs to compensate for the scale.
     // naturalWidth and naturalHeight are the original dimensions of the image.
     // The width and height both scale equally so only width will be used.
@@ -84,46 +79,50 @@ async function onCropperReady() {
 
 //checks bytes of file header to check file type because human readable MIME type can be manipulated
 function checkFileType(file) {
-  const reader = new FileReader();
-  let header = "";
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    let header = "";
+    reader.onload = (e) => {
+      let fileType = "";
+      let arr = new Uint8Array(e.target.result).subarray(0, 16);
 
-  reader.onload = (e) => {
-    let fileType = "";
-    let arr = new Uint8Array(e.target.result).subarray(0, 16);
+      // for (let i = 0; i < arr.length; i++) {
+      //   header += arr[i].toString(16);
+      // }
+      let dataview = new DataView(arr.buffer);
 
-    for (let i = 0; i < arr.length; i++) {
-      header += arr[i].toString(16);
-    }
+      // hexadecimal representation of those file extensions.
+      // References:
+      // https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
+      // https://en.wikipedia.org/wiki/List_of_file_signatures
+      if (dataview.getUint16(0,false) == 0x424d) {
+        fileType = "bmp";
+      } else if (dataview.getUint32(0,false) & 0xffd8ff00 > 0) {
+        fileType = "jpg";
+      } else if (dataview.getUint32(0,false) & 0x504e4700 > 0) {
+        fileType = "png";
+      } else if (dataview.getUint32(0,false) == 0x52494646 && dataview.getUint32(8,false) == 0x57454250) {
+        fileType = "webp";
+      } else {
+        fileType = "invalid";
+        data.message = "File type not accepted";
+      }
 
-    //hexadecimal representation of those file extensions. References: https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
-    //https://en.wikipedia.org/wiki/List_of_file_signatures
-    if (header.includes("424d")) {
-      fileType = "bmp";
-    } else if (header.includes("ffd8ff")) {
-      fileType = "jpg";
-    } else if (header.includes("504e47")) {
-      fileType = "png";
-    } else if (header.includes("52494646") && header.includes("57454250")) {
-      fileType = "webp";
-    } else {
-      fileType = "invalid";
-      data.message = "File type not accepted";
-    }
-
-    data.isValidFileType = fileType !== "invalid" ? true : false;
-  };
-  reader.readAsArrayBuffer(file);
+      data.fileType = fileType;
+      data.isValidFileType = fileType !== "invalid" ? true : false;
+      resolve({ fileType: data.fileType, isValidFileType: data.isValidFileType });
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
 }
 
 async function onFileChange(e) {
-  // TODO check that the file uploaded is a valid image file
   const files = e.target.files;
 
   if (files.length > 0) {
     data.file = files[0];
-    checkFileType(data.file);
-    //delays for .5s because that's about the time it takes for data.isValidFileType to be updated
-    setTimeout(() => {
+    checkFileType(data.file).then(() => {
       if (data.isValidFileType) {
         if (data.file.size <= data.maxFileSize) {
           data.fileSizeExceeded = false;
@@ -136,14 +135,13 @@ async function onFileChange(e) {
             data.croppedImage = true;
           };
           reader.readAsDataURL(data.file);
-          // TODO: set the cropping box to the moon_position
           RunDetectMoon(data.file);
         } else {
           data.fileSizeExceeded = true;
           data.message = "Max upload file size of 30MB exceeded";
         }
       }
-    }, 500);
+    });
   }
 }
 
@@ -159,7 +157,7 @@ async function updateMetaData() {
     if (tags.GPSLongitude && tags.GPSLatitude) {
       // Keep all North latitude values positive
       // and make South latitude values negative
-      if (tags.GPSLatitudeRef.value[0] === "N") {
+      if (tags.GPSLatitudeRef.value[0] === 'N') {
         data.latitude = tags.GPSLatitude.description;
       } else {
         data.latitude = -1 * tags.GPSLatitude.description;
@@ -167,7 +165,7 @@ async function updateMetaData() {
 
       // Keep all East longitude values positive
       // and make West longitude values negative
-      if (tags.GPSLongitudeRef.value[0] === "E") {
+      if (tags.GPSLongitudeRef.value[0] === 'E') {
         data.longitude = tags.GPSLongitude.description;
       } else {
         data.longitude = -1 * tags.GPSLongitude.description;
@@ -179,11 +177,11 @@ async function updateMetaData() {
     }
     if (tags.DateTimeOriginal) {
       // Get datetime in YYYY:MM:DD HH:MM:SS
-      const imageDate = tags.DateTimeOriginal.description;
+      const imageDate = tags.DateTimeOriginal.description
       //Split time and date
-      const [datePart, timePart] = imageDate.split(" ");
+      const [datePart, timePart] = imageDate.split(' ');
       //Split date
-      const [year, month, day] = datePart.split(":");
+      const [year, month, day] = datePart.split(':');
       //Reformat date into something compatible with the field.
       const temp_date = `${year}-${month}-${day}`;
       data.date = temp_date;
@@ -213,50 +211,72 @@ async function updateMetaData() {
 //   * returns from MoonDetection() will be receive & process by this.onMoonPositionUpdatse()
 async function RunDetectMoon(_fileObject, _type = "square") {
   try {
-    MoonRegistration.MoonDetection(_fileObject, _type, onMoonPositionUpdate);
+    MoonRegistration.MoonDetection(_fileObject, _type, onMoonPositionUpdate)
   } catch (err) {
     data.message = err;
   }
 }
-async function onMoonPositionUpdate(new_position) {
-  console.log("moon_position:", new_position);
+async function onMoonPositionUpdate(new_position_circle, new_position) {
+  console.log('moon_position:', new_position);
+  data.moon_position_circle = { x: new_position_circle.x, y: new_position_circle.y, radius: new_position_circle.radius };
   if (new_position.type == "square") {
-    data.moon_position = {
-      x: new_position.x,
-      y: new_position.y,
-      width: new_position.width,
-    };
-    console.log(data.moon_position);
+    data.moon_position = { x: new_position.x, y: new_position.y, width: new_position.width }
+    console.log(data.moon_position)
   }
 }
 // function that gets the cropped image and sends it to server-side
 async function uploadCroppedImage() {
   try {
-    const imgFile = await new Promise((resolve) => {
-      cropr.value.getCroppedCanvas().toBlob((img) => {
-        resolve(img);
-      });
-    });
-    const formData = new FormData();
-    formData.append("lunarImage", imgFile, ".jpg");
     // make post request to upload image to database
-    const res = await axios.post(
-      `${config.backend_url}/api/picUpload`,
-      formData,
-      {
-        params: {
-          latitude: data.latitude,
-          longitude: data.longitude,
-          time: data.time,
-          date: data.date,
-        },
+    let metadata_params = {
+      "instrument": {
+        "inst_type": "phone", // TODO: add additional drop-down menu for instrument type. ("phone", "camera", "phone+telescope", "camera+telescope")
+        "inst_make": data.make,
+        "inst_model": data.model
+      },
+      "image": {
+        "img_name": data.file.name,
+        "img_type": data.file.type,
+        "img_uri": `./${data.file.name}`, // TODO: file uri should be determined by the server
+        "img_altitude": Number.parseFloat(data.altitude),
+        "img_longitude": Number.parseFloat(data.longitude),
+        "img_latitude": Number.parseFloat(data.latitude),
+        "img_timestamp": Math.floor((new Date()).getTime() / 1000), // TODO: derive image's original unix timestamp when taken from geolocation & datetime
+      },
+      "moon": {
+        "moon_detect_flag": 1,
+        "moon_exist_flag": 1,
+        "moon_loc_x": data.moon_position_circle.x,
+        "moon_loc_y": data.moon_position_circle.y,
+        "moon_loc_r": data.moon_position_circle.radius
       }
+    }
+    const meta_res = await axios.post(
+      `${config.backend_url}/api/picMetadata`,
+      metadata_params,
+      { withCredentials: true, }
     );
 
-    const { status } = res.data;
-    console.log(`status: ${status}`);
+    if (meta_res.status == 200) {
+      const imgFile = await new Promise(resolve => {
+        cropr.value.getCroppedCanvas().toBlob(img => {
+          resolve(img);
+        });
+      });
+      const formData = new FormData();
+      formData.append("lunarImage", imgFile, data.fileType);
+      const upload_res = await axios.post(
+        `${config.backend_url}/api/picUpload?upload_uuid=${meta_res.data.upload_uuid}`,
+        formData,
+        { withCredentials: true }
+      );
 
-    data.message = status;
+      const { status } = upload_res.data;
+      console.log(`status: ${status}`);
+
+      data.message = status;
+    }
+
   } catch (err) {
     data.message = err;
   }

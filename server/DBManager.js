@@ -175,7 +175,7 @@ class DBManager {
                 iv: CryptoJS.enc.Utf8.parse("0000000000000000"),
             }
         );
-        let hashed_email = CryptoJS.MD5(user_email).toString();
+        let hashed_email = CryptoJS.MD5(encrypted_email.toString()).toString();
         let insert_user_list = [encrypted_email.toString()]
         
         this.logger.debug(`encrypted_email: ${encrypted_email}`);
@@ -226,17 +226,8 @@ class DBManager {
                         return;
                     } else {
                         let encrypted_email = result[0].user_email;
-                        let decrypted_email = CryptoJS.AES.decrypt(
-                            encrypted_email,
-                            CryptoJS.enc.Base64.parse(this.aes_key),
-                            {
-                                mode: CryptoJS.mode.CBC,
-                                iv: CryptoJS.enc.Utf8.parse("0000000000000000"),
-                            }
-                        );
                         this.logger.debug(`encrypted_email: ${encrypted_email.toString(CryptoJS.enc.Utf8)}`);
-                        this.logger.debug(`decrypted_email: ${decrypted_email.toString(CryptoJS.enc.Utf8)}`);
-                        let hashed_email = CryptoJS.MD5(decrypted_email.toString(CryptoJS.enc.Utf8)).toString();
+                        let hashed_email = CryptoJS.MD5(encrypted_email).toString();
                         this.logger.debug(`hashed_email: ${hashed_email}`);
                         if (hashed_email != payload.hashed_email) {
                             handler(new Error("User email not matching"), null);

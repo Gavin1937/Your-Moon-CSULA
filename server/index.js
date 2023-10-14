@@ -45,60 +45,60 @@ const isImg = (req, file, cb) => {
 
 // save to file system
 // ==================================================
-// const storeImg = multer.diskStorage({
-// 	destination: (req, file, cb) => {
-// 		// cb = callback
-// 		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
-// 	},
-// 	filename: (req, file, cb) => {
-// 		cb(null, `image-${Date.now()}.${file.originalname}`);
-// 	},
-// });
-// const upload = multer({
-// 	storage: storeImg,
-// 	fileFilter: isImg,
-// 	limits: { fileSize: config.max_upload_size },
-// });
+const storeImg = multer.diskStorage({
+	destination: (req, file, cb) => {
+		// cb = callback
+		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
+	},
+	filename: (req, file, cb) => {
+		cb(null, `image-${Date.now()}.${file.originalname}`);
+	},
+});
+const upload = multer({
+	storage: storeImg,
+	fileFilter: isImg,
+	limits: { fileSize: config.max_upload_size },
+});
 // ==================================================
 
 
 // save to aws s3
 // ==================================================
-// Connection to S3 database with full S3 connection
-let aws_config = (({ bucket_name, ...others }) => others)(config.aws)
-AWS.config.update(aws_config);
+// // Connection to S3 database with full S3 connection
+// let aws_config = (({ bucket_name, ...others }) => others)(config.aws)
+// AWS.config.update(aws_config);
 
-// Create a connection to yourmoon bucket
-const s3 = new AWS.S3();
-s3.listBuckets((err, data) => {
-	if (err) {
-		logger.error('AWS connection error:', err);
-	} else {
-		logger.info('AWS connection successful.');
-		logger.info(`\n${JSON.stringify(data,null,2)}`);
-	}
-});
+// // Create a connection to yourmoon bucket
+// const s3 = new AWS.S3();
+// s3.listBuckets((err, data) => {
+// 	if (err) {
+// 		logger.error('AWS connection error:', err);
+// 	} else {
+// 		logger.info('AWS connection successful.');
+// 		logger.info(`\n${JSON.stringify(data,null,2)}`);
+// 	}
+// });
 
-// setup multer for upload to s3
-const upload = multer({
-	storage: multerS3({
-		s3: s3,
-		acl: 'public-read',
-		bucket: config.aws.bucket_name,
-		key: function (req, file, cb) {
-			logger.warn("Upload Query: ", req.query);
-			logger.warn("File Information:\n", file);
-			const key = `image-${new Date().toISOString()}.${file.originalname}`;
-			if (key) {
-			  cb(null, key);
-			} else {
-			  cb(new Error("Error generating S3 key"));
-			}
-		  },
-		fileFilter: isImg,
-		limits: { fileSize: config.max_upload_size },
-	})
-});
+// // setup multer for upload to s3
+// const upload = multer({
+// 	storage: multerS3({
+// 		s3: s3,
+// 		acl: 'public-read',
+// 		bucket: config.aws.bucket_name,
+// 		key: function (req, file, cb) {
+// 			logger.warn("Upload Query: ", req.query);
+// 			logger.warn("File Information:\n", file);
+// 			const key = `image-${new Date().toISOString()}.${file.originalname}`;
+// 			if (key) {
+// 			  cb(null, key);
+// 			} else {
+// 			  cb(new Error("Error generating S3 key"));
+// 			}
+// 		  },
+// 		fileFilter: isImg,
+// 		limits: { fileSize: config.max_upload_size },
+// 	})
+// });
 // ==================================================
 
 

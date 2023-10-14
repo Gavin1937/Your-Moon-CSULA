@@ -45,14 +45,14 @@ let data = reactive({
   mapReady: false
 })
 
-//function when user clicks no -that location on google maps is wrong
+//function when user clicks no -that location on OpenStreetMaps is wrong
 function closeMapAndResetLatLonFields(){
 	data.mapReady = false;
 	data.latitude = '';
 	data.longitude = '';
 }
 
-//lat range -90 - 90, lon -180 - 180, would cause error on Google Map if not valid lat and lon
+//lat range -90 - 90, lon -180 - 180, would cause error on OpenStreetMaps if not valid lat and lon
 function validateCoords(){
 	if(data.latitude >= -90 && data.latitude <= 90){
 		if(data.longitude >= -180 && data.longitude <= 180){
@@ -71,7 +71,66 @@ function validateCoords(){
 function showCoordsOnMap(){
 	const city = nearestCity({latitude: data.latitude, longitude: data.longitude});
 	const qParam = city.name.replace(" ", "+");
-	data.iframe.src= `https://www.google.com/maps/embed/v1/place?key=${config.GOOGLE_API_KEY}&q=${qParam}&center=${data.latitude},${data.longitude}`;
+  
+  // lat, lon, zoom to OSM bounding box
+  // https://stackoverflow.com/a/17811173
+  function rad2deg(radians)
+  {
+    var pi = Math.PI;
+    return radians * (180/pi);
+  }
+  function deg2rad(degrees)
+  {
+    var pi = Math.PI;
+    return degrees * (pi/180);
+  }
+  // trigonometry sec function
+  function sec(val) {
+    return 1/Math.cos(val);
+  }
+  
+  function getTileNumber(lat, lon, zoom) {
+    let xtile = Number.parseInt( (lon+180)/360 * 2**zoom ) ;
+    let ytile = Number.parseInt( (1 - Math.log(Math.tan(deg2rad(lat)) + sec(deg2rad(lat)))/Math.PI)/2 * 2**zoom ) ;
+    return [xtile, ytile];
+  }
+  
+  function getLonLat(xtile, ytile, zoom) {
+    let n = 2 ** zoom;
+    let lon_deg = xtile / n * 360.0 - 180.0;
+    let lat_deg = rad2deg(Math.atan(Math.sinh(Math.PI * (1 - 2 * ytile / n))));
+    return [lon_deg, lat_deg];
+  }
+  
+  // convert from permalink OSM format like:
+  // http://www.openstreetmap.org/?lat=43.731049999999996&lon=15.79375&zoom=13&layers=M
+  // to OSM "Export" iframe embedded bbox format like:
+  // http://www.openstreetmap.org/export/embed.html?bbox=15.7444,43.708,15.8431,43.7541&layer=mapnik
+  
+  function LonLat_to_bbox(lat, lon, zoom) {
+    let width = 425;
+    let height = 350; // note: must modify this to match your embed map width/height in pixels
+    let tile_size = 256;
+    
+    let [xtile, ytile] = getTileNumber (lat, lon, zoom);
+    
+    let xtile_s = (xtile * tile_size - width/2) / tile_size;
+    let ytile_s = (ytile * tile_size - height/2) / tile_size;
+    let xtile_e = (xtile * tile_size + width/2) / tile_size;
+    let ytile_e = (ytile * tile_size + height/2) / tile_size;
+    
+    let [lon_s,lat_s] = getLonLat(xtile_s, ytile_s, zoom);
+    let [lon_e,lat_e] = getLonLat(xtile_e, ytile_e, zoom);
+    
+    let bbox = [lon_s,lat_s,lon_e,lat_e];
+    return bbox;
+  }
+  
+  let bbox = LonLat_to_bbox(city.latitude,city.longitude,9.5);
+  console.log(`bbox: ${bbox}`);
+  let bbox_str = `${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]},`
+  
+  data.iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox_str}&layer=mapnik&marker=${city.latitude},${city.longitude}`
 	data.mapReady = true;
 }
 
@@ -356,14 +415,17 @@ async function uploadCroppedImage() {
         {{ data.message }}
       </div>
 	  <div v-if="data.mapReady">
-		<iframe
-  			width="450"
-  			height="250"
-  			frameborder="0" style="border:0"
-  			referrerpolicy="no-referrer-when-downgrade"
-  			:src="data.iframe.src"
-  			allowfullscreen>
-		</iframe>
+    <iframe width="450" height="250"
+      frameborder="0" style="border:0"
+      referrerpolicy="no-referrer-when-downgrade"
+      :src="data.iframe.src"
+      allowfullscreen
+    >
+    </iframe>
+    <br/>
+    <small>
+      <a href="https://www.openstreetmap.org/?mlat=40.747&amp;mlon=-113.379#map=8/40.747/-113.379">View Larger Map</a>
+    </small>
 		<p>Can you confirm location from where Moon shot was taken?</p>
 		<button @click="closeMapAndResetLatLonFields">No</button>
 		<button @click="uploadCroppedImage">Yes</button>

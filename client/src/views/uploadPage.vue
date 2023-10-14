@@ -7,6 +7,7 @@ import ExifReader from "exifreader";
 import { ref, reactive } from "vue";
 import MoonRegistration from "../moon-registration";
 import config from "../../config/config.json";
+import { nearestCity } from 'cityjs';
 
 // This is the ref to the cropper DOM element
 const cropr = ref(null);
@@ -23,6 +24,7 @@ let data = reactive({
   isValidFileType: false,
   latitude: '',
   longitude: '',
+  inValidCoords: null,
   altitude: '',
   timeStamp: '',
   // Data retrieved from RunMoonDetect()
@@ -32,12 +34,46 @@ let data = reactive({
   date: '',
   // Tracks time input if there isn't meta data
   time: '',
+  iframe:{
+		src: ""
+	},
   file: null,
   fileType: '',
   imageDataUrl: null,
   showCropper: false,
   croppedImage: null,
+  mapReady: false
 })
+
+//function when user clicks no -that location on google maps is wrong
+function closeMapAndResetLatLonFields(){
+	data.mapReady = false;
+	data.latitude = '';
+	data.longitude = '';
+}
+
+//lat range -90 - 90, lon -180 - 180, would cause error on Google Map if not valid lat and lon
+function validateCoords(){
+	if(data.latitude >= -90 && data.latitude <= 90){
+		if(data.longitude >= -180 && data.longitude <= 180){
+			data.message = ""
+			showCoordsOnMap()
+		}
+	}else{
+		data.invalidCoords = true;
+		data.message = "Invalid coordinates";
+		data.latitude = "";
+		data.longitude = "";
+	}
+	
+}
+
+function showCoordsOnMap(){
+	const city = nearestCity({latitude: data.latitude, longitude: data.longitude});
+	const qParam = city.name.replace(" ", "+");
+	data.iframe.src= `https://www.google.com/maps/embed/v1/place?key=${config.GOOGLE_API_KEY}&q=${qParam}&center=${data.latitude},${data.longitude}`;
+	data.mapReady = true;
+}
 
 function getScaledCropData() {
   // Gets cropBoxData and scales it up to the scale of the original image.
@@ -316,9 +352,22 @@ async function uploadCroppedImage() {
           @ready="onCropperReady"
         />
       </div>
-      <div class="status-message" v-if="fileSizeExceeded || !isValidFileType">
+      <div class="status-message" v-if="fileSizeExceeded || !isValidFileType || invalidCoords">
         {{ data.message }}
       </div>
+	  <div v-if="data.mapReady">
+		<iframe
+  			width="450"
+  			height="250"
+  			frameborder="0" style="border:0"
+  			referrerpolicy="no-referrer-when-downgrade"
+  			:src="data.iframe.src"
+  			allowfullscreen>
+		</iframe>
+		<p>Can you confirm location from where Moon shot was taken?</p>
+		<button @click="closeMapAndResetLatLonFields">No</button>
+		<button @click="uploadCroppedImage">Yes</button>
+	  </div>
       <div v-if="data.croppedImage">
         <div class="cent">
           <div id="image-upload">
@@ -347,6 +396,9 @@ async function uploadCroppedImage() {
                           class="input"
                           type="number"
                           v-model="data.latitude"
+						  min="-90"
+						  max="90"
+						  required
                         />
                       </div>
                     </div>
@@ -359,6 +411,9 @@ async function uploadCroppedImage() {
                           class="input"
                           type="number"
                           v-model="data.longitude"
+						  min="-180"
+						  max="180"
+						  required
                         />
                       </div>
                     </div>
@@ -371,6 +426,7 @@ async function uploadCroppedImage() {
                           class="input"
                           type="number"
                           v-model="data.altitude"
+						  required
                         />
                       </div>
                     </div>
@@ -382,7 +438,7 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Date </label>
                       <div class="control">
-                        <input class="input" type="date" v-model="data.date" />
+                        <input class="input" type="date" v-model="data.date" required/>
                       </div>
                     </div>
                   </div>
@@ -390,7 +446,7 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Time </label>
                       <div class="control">
-                        <input class="input" type="time" v-model="data.time" />
+                        <input class="input" type="time" v-model="data.time" required />
                       </div>
                     </div>
                   </div>
@@ -398,7 +454,7 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Instrument Make </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.make" />
+                        <input class="input" type="text" v-model="data.make" required />
                       </div>
                     </div>
                   </div>
@@ -406,7 +462,7 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Instrument Model </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.model" />
+                        <input class="input" type="text" v-model="data.model" required />
                       </div>
                     </div>
                   </div>
@@ -426,7 +482,7 @@ async function uploadCroppedImage() {
             <button
               type="button"
               class="btn btn-primary"
-              @click="uploadCroppedImage"
+              @click="validateCoords"
             >
               Upload
             </button>

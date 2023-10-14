@@ -12,14 +12,10 @@ const bodyParser = require("body-parser");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
 const cors = require("cors");
-const sharp = require("sharp");
-const passport = require("passport");
-const passportSetup = require("./passport");
-const cookieSession = require('cookie-session');
-const authRoutes = require("./routes/auth");
+const cookieParser = require("cookie-parser");
 const DBManager = require('./DBManager.js');
 var logger = require('./logger.js')(config.log_file, config.log_level);
-var db = new DBManager(config.db, logger);
+var db = new DBManager(config.db, config.aes_key, config.jwt_secret, logger);
 
 
 // parse application/x-www-form-urlencoded
@@ -29,35 +25,12 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.use(express.json());
-app.use(cookieSession({
-	name:"session",
-	keys:["Your-Moon"],//encryption key,
-	maxAge: 60 * 30 //30 minutes
-}));
-
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-//allows to send sessions to client and server
 app.use(cors({
-	origin:"http://localhost:5173", //replace with home page url
-	methods:"GET,POST",
 	credentials: true,
-}))
+	origin: config.cors_origin_whitelist
+}));
+app.use(cookieParser());
 
-app.use("/api/auth", authRoutes)
-
-// file system
-const storeImg = multer.diskStorage({
-	destination: (req, file, cb) => {
-		// cb = callback
-		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
-	},
-	filename: (req, file, cb) => {
-		cb(null, `image-${Date.now()}.${file.originalname}`);
-	},
-});
 
 // file filter to only allow image file types ()
 const isImg = (req, file, cb) => {
@@ -72,60 +45,60 @@ const isImg = (req, file, cb) => {
 
 // save to file system
 // ==================================================
-// const storeImg = multer.diskStorage({
-// 	destination: (req, file, cb) => {
-// 		// cb = callback
-// 		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
-// 	},
-// 	filename: (req, file, cb) => {
-// 		cb(null, `image-${Date.now()}.${file.originalname}`);
-// 	},
-// });
-// const upload = multer({
-// 	storage: storeImg,
-// 	fileFilter: isImg,
-// 	limits: { fileSize: config.max_upload_size },
-// });
+const storeImg = multer.diskStorage({
+	destination: (req, file, cb) => {
+		// cb = callback
+		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
+	},
+	filename: (req, file, cb) => {
+		cb(null, `image-${Date.now()}.${file.originalname}`);
+	},
+});
+const upload = multer({
+	storage: storeImg,
+	fileFilter: isImg,
+	limits: { fileSize: config.max_upload_size },
+});
 // ==================================================
 
 
 // save to aws s3
 // ==================================================
-// Connection to S3 database with full S3 connection
-let aws_config = (({ bucket_name, ...others }) => others)(config.aws)
-AWS.config.update(aws_config);
+// // Connection to S3 database with full S3 connection
+// let aws_config = (({ bucket_name, ...others }) => others)(config.aws)
+// AWS.config.update(aws_config);
 
-// Create a connection to yourmoon bucket
-const s3 = new AWS.S3();
-s3.listBuckets((err, data) => {
-	if (err) {
-		logger.error('AWS connection error:', err);
-	} else {
-		logger.info('AWS connection successful.');
-		logger.info(`\n${JSON.stringify(data,null,2)}`);
-	}
-});
+// // Create a connection to yourmoon bucket
+// const s3 = new AWS.S3();
+// s3.listBuckets((err, data) => {
+// 	if (err) {
+// 		logger.error('AWS connection error:', err);
+// 	} else {
+// 		logger.info('AWS connection successful.');
+// 		logger.info(`\n${JSON.stringify(data,null,2)}`);
+// 	}
+// });
 
-// setup multer for upload to s3
-const upload = multer({
-	storage: multerS3({
-		s3: s3,
-		acl: 'public-read',
-		bucket: config.aws.bucket_name,
-		key: function (req, file, cb) {
-			logger.warn("Upload Query: ", req.query);
-			logger.warn("File Information:\n", file);
-			const key = `image-${new Date().toISOString()}.${file.originalname}`;
-			if (key) {
-			  cb(null, key);
-			} else {
-			  cb(new Error("Error generating S3 key"));
-			}
-		  },
-		fileFilter: isImg,
-		limits: { fileSize: config.max_upload_size },
-	})
-});
+// // setup multer for upload to s3
+// const upload = multer({
+// 	storage: multerS3({
+// 		s3: s3,
+// 		acl: 'public-read',
+// 		bucket: config.aws.bucket_name,
+// 		key: function (req, file, cb) {
+// 			logger.warn("Upload Query: ", req.query);
+// 			logger.warn("File Information:\n", file);
+// 			const key = `image-${new Date().toISOString()}.${file.originalname}`;
+// 			if (key) {
+// 			  cb(null, key);
+// 			} else {
+// 			  cb(new Error("Error generating S3 key"));
+// 			}
+// 		  },
+// 		fileFilter: isImg,
+// 		limits: { fileSize: config.max_upload_size },
+// 	})
+// });
 // ==================================================
 
 
@@ -157,47 +130,71 @@ function uploadHandler(next) { // outer function takes in "next" request handler
 // upload picture file (file upload only)
 app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db handler as "next" function
 	try {
-		// TODO: check JWT in the cookie here
-		
-		const imgFile = req.file;	// gets the file that is uploaded from the client
-		logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
-
-		// additional size check
-		if (imgFile.size > config.max_upload_size) {
-			logger.warn("IMAGE IS TOO BIG!");
-			res.status(413).json({
-				status: "UPLOAD FAILED ! ❌",
-				message: `IMAGE IS TOO BIG!, UPLOAD LIMIT IS: ${config.max_upload_size}`,
-			});
+		logger.debug(`req.cookies: ${JSON.stringify(req.cookies,null,2)}`);
+		logger.debug(`req.headers: ${JSON.stringify(req.headers,null,2)}`);
+		// backend will take jwt from either cookies.token or headers.authorization
+		let jwt_token = Object.keys(req.cookies).length <= 0 ? req.headers.authorization : req.cookies.token;
+		if (!jwt_token || jwt_token.length <= 0) {
+			logger.warn("UNAUTHORIZED ACCESS!");
+			res.status(401).json({
+				status: "UNAUTHORIZED ACCESS!",
+				message: "Please login to access this endpoint.",
+			})
+			return;
 		}
-
-		const { upload_uuid } = req.query;
-		
-		logger.info(`upload_uuid: ${upload_uuid}`);
-		
-		const imageName = req.file.originalname; // name of the image file
-		const imageType = req.file.mimetype; // type of the image file
-		const path = req.file.path; // gets the buffer
-
-		logger.info(`NAME: ${imageName}`);
-		logger.info(`IMAGE TYPE: ${imageType}`);
-		logger.info(`path: ${path}`);
-		
-		// rm job from the queue
-		db.finishUploadJob(upload_uuid, 1, 0, (error, result) => {
+		db.verifyUserJWT(jwt_token, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
-				logger.error("THERE HAS BEEN AN ERROR UPLOADING THE IMAGE!");
-				logger.error(`error:\n${error.toString()}`);
+				logger.error(`error:\n${error}`);
 				res.status(400).json({
-					status: "UPLOAD FAILED ! ❌",
+					status: "VERIFY FAILED ! ❌",
 					message: error.toString(),
 				});
 			}
 			else {
-				// upload success, save file
-				res.status(200).json({
-					status: "UPLOAD SUCCESSFUL ! ✔️"
-				})
+				logger.info("VERIFIED USER!");
+				const imgFile = req.file;	// gets the file that is uploaded from the client
+				logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`);	// testing purposes to see some info of the file
+				
+				// additional size check
+				if (imgFile.size > config.max_upload_size) {
+					logger.warn("IMAGE IS TOO BIG!");
+					res.status(413).json({
+						status: "UPLOAD FAILED ! ❌",
+						message: `IMAGE IS TOO BIG!, UPLOAD LIMIT IS: ${config.max_upload_size}`,
+					});
+				}
+				
+				const { upload_uuid } = req.query;
+				
+				logger.info(`upload_uuid: ${upload_uuid}`);
+				
+				const imageName = req.file.originalname; // name of the image file
+				const imageType = req.file.mimetype; // type of the image file
+				const path = req.file.path; // gets the buffer
+				
+				logger.info(`NAME: ${imageName}`);
+				logger.info(`IMAGE TYPE: ${imageType}`);
+				logger.info(`path: ${path}`);
+				
+				// rm job from the queue
+				db.finishUploadJob(upload_uuid, 1, 0, (error2, result2) => {
+					if (error2) {
+						logger.error("THERE HAS BEEN AN ERROR UPLOADING THE IMAGE!");
+						logger.error(`error2:\n${error2.toString()}`);
+						res.status(400).json({
+							status: "UPLOAD FAILED ! ❌",
+							message: error2.toString(),
+						});
+					}
+					else {
+						// upload success, save file
+						res.status(200).json({
+							status: "UPLOAD SUCCESSFUL ! ✔️"
+						})
+					}
+				});
 			}
 		});
 	}
@@ -217,35 +214,61 @@ app.post("/api/picMetadata", (req, res) => {
 		logger.debug(`req.body:`);
 		logger.debug(JSON.stringify(req.body));
 		
-		// TODO: check JWT in the cookie here
+		logger.debug(`req.cookies: ${JSON.stringify(req.cookies,null,2)}`);
+		logger.debug(`req.headers: ${JSON.stringify(req.headers,null,2)}`);
+		// backend will take jwt from either cookies.token or headers.authorization
+		let jwt_token = Object.keys(req.cookies).length <= 0 ? req.headers.authorization : req.cookies.token;
+		if (!jwt_token || jwt_token.length <= 0) {
+			logger.warn("UNAUTHORIZED ACCESS!");
+			res.status(401).json({
+				status: "UNAUTHORIZED ACCESS!",
+				message: "Please login to access this endpoint.",
+			})
+			return;
+		}
 		
-		db.addImage(req.body.instrument, req.body.image, req.body.moon, (error, result) => {
+		db.verifyUserJWT(jwt_token, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
-				logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
 				logger.error(`error:\n${error}`);
-				res.status(500).json({
-					status: "UPLOAD FAILED ! ❌",
-					message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
+				res.status(400).json({
+					status: "VERIFY FAILED ! ❌",
+					message: error.toString(),
 				});
 			}
 			else {
-				logger.info("Successfully inserted into the lunarimages database!");
-				logger.info("IMAGE INSERTED SUCCESSFULLY!");
-				
-				// TODO: use redis for this job queue
-				db.registerUploadJob(config.upload_job_expire, 1, (error, result) => {
-					if (result == null) {
-						res.status(400).json({
+				logger.info("VERIFIED USER!");
+				db.addImage(req.body.instrument, req.body.image, req.body.moon, (error2, result2) => {
+					logger.debug(`result2: ${JSON.stringify(result2,null,2)}`);
+					logger.debug(`error2: ${JSON.stringify(error2,null,2)}`);
+					if (error2) {
+						logger.error("THERE HAS BEEN AN ERROR INSERTING THE IMAGE!");
+						res.status(500).json({
 							status: "UPLOAD FAILED ! ❌",
-							message: error.toString(),
+							message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
 						});
 					}
 					else {
-						res.status(200).json({
-							status: "UPLOAD SUCCESSFUL ! ✔️",
-							upload_uuid: result.upload_uuid,
-							expires: result.expires,
-							// TODO: response with credentials for picture file upload
+						logger.info("Successfully inserted into the YourMoonDB!");
+						logger.info("IMAGE INSERTED SUCCESSFULLY!");
+						
+						// TODO: use redis for this job queue
+						db.registerUploadJob(config.upload_job_expire, 1, (error3, result3) => {
+							if (result3 == null) {
+								res.status(400).json({
+									status: "UPLOAD FAILED ! ❌",
+									message: error3.toString(),
+								});
+							}
+							else {
+								res.status(200).json({
+									status: "UPLOAD SUCCESSFUL ! ✔️",
+									upload_uuid: result3.upload_uuid,
+									expires: result3.expires,
+									// TODO: response with credentials for picture file upload
+								});
+							}
 						});
 					}
 				});
@@ -260,6 +283,88 @@ app.post("/api/picMetadata", (req, res) => {
 		});
 	}
 });
+
+//! This is a demo endpoint, we can do user authentication in auth.js
+app.post("/api/authUser", (req, res) => {
+	try {
+		logger.info("In authUser");
+		logger.debug(`req.body:`);
+		logger.debug(JSON.stringify(req.body));
+		
+		// TODO: retrieve email from OAuth 2.0
+		const { user_email } = req.query;
+		logger.debug(`user_email: ${user_email}`);
+		
+		db.registerUser(user_email, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+			if (error) {
+				logger.error(`error:\n${error}`);
+				let message = null;
+				if (error.toString().includes("duplicate")) {
+					message = "DUPLICATE EMAIL";
+				} else {
+					message = "FAILED TO REGISTER USER";
+				}
+				res.status(400).json({
+					status: "REGISTER FAILED ! ❌",
+					message: message,
+				});
+				logger.error(message);
+			}
+			else {
+				// response with jwt
+				res.status(200).json(result);
+			}
+		});
+	}
+	catch (error) {
+		logger.error(`Exception:\n${error.stack}`);
+		res.status(500).json({
+			status: "UPLOAD FAILED ! ❌",
+			message: "Internal Server Error",
+		});
+	}
+})
+
+//! This is a demo endpoint, we need to verify user's jwt right inside other endpoints
+app.get("/api/verifyUser", (req, res) => {
+	try {
+		logger.info("In verifyUser");
+		logger.debug(`req.body:`);
+		logger.debug(JSON.stringify(req.body));
+		
+		// user_jwt is inside http header: authorization
+		const user_jwt = req.headers.authorization;
+		logger.debug(`user_jwt: ${user_jwt}`);
+		
+		db.verifyUserJWT(user_jwt, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+			if (error) {
+				logger.error(`error:\n${error}`);
+				res.status(400).json({
+					status: "VERIFY FAILED ! ❌",
+					message: error.toString(),
+				});
+			}
+			else {
+				logger.info("VERIFIED USER!");
+				res.status(200).json({
+					status: "VERIFY SUCCESS ! ✔️",
+					verify:result
+				});
+			}
+		});
+	}
+	catch (error) {
+		logger.error(`Exception:\n${error.stack}`);
+		res.status(500).json({
+			status: "UPLOAD FAILED ! ❌",
+			message: "Internal Server Error",
+		});
+	}
+})
 
 // running on port 3001 currently
 app.listen(config.app_port, () => {

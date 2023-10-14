@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS Users(
     user_id             INT              AUTO_INCREMENT PRIMARY KEY NOT NULL,
     user_email          VARCHAR(256)     NOT NULL, -- encrypted email
     user_upload_count   INT              DEFAULT 0,
-    user_flag_count     INT              DEFAULT 0
+    user_flag_count     INT              DEFAULT 0,
+    CONSTRAINT unique_inst UNIQUE (user_email)
 );
 
 CREATE TABLE IF NOT EXISTS Instruments(

@@ -18,16 +18,36 @@
     "max_upload_size": 31457280, // 30MB
     "log_file": "/path/to/your-moon-server.log",
     "log_level": "debug",
+    "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
+    "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
+    "cors_origin_whitelist": [
+        "http://localhost:5173"
+    ],
     "db": {
-        "connectionLimit": 10,
         "host": "localhost",
         "port": 3306,
         "user": "username",
         "password": "password",
         "database": "YourMoonDB"
+    },
+    "aws": {
+        "accessKeyId": "SUPER/SECRET?KEY1",
+        "secretAccessKey": "THIS@KEY%IS*EVEN%MORE$SECRET",
+        "region": "us-west-2",
+        "bucket_name": "my-bucket-name"
     }
 }
 ```
+
+* Note that both `aes_key` and `jwt_secret` are saved as base64 encoded strings. To create them, you can run following python script in any python 3.x environment. (I suggest [this website](https://www.programiz.com/python-programming/online-compiler/) for anyone don't want to install python)
+
+```py
+from random import randbytes
+from base64 import b64encode
+print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8'))
+```
+
+* Note that `cors_origin_whitelist` is a list of urls to the the frontend, they are whitelist for cors cross origin protection. This is because we need to send credentials (cookie) from the frontend to backend.
 
 3. you can use `.template` files under `src/server/config/` as your starting point
 

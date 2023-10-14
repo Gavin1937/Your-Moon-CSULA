@@ -11,7 +11,7 @@ import { nearestCity } from 'cityjs';
 
 // This is the ref to the cropper DOM element
 const cropr = ref(null);
-// const API_KEY = 'AIzaSyCotXjJ5FcRumeP5tvh_VQDoAFZrdXYx_Y'
+
 let data = reactive({
   // "META DATA"
   image: "",

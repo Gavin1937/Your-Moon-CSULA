@@ -158,7 +158,10 @@ class DBManager {
         }
     }
     
-    registerUser(user_email, handler)
+    // if submitted user_email does't exists, create a new user
+    // otherwise, just return jwt & log exiting user in
+    // input parameter "user_email" is a decrypted email, plain text
+    registerOrLoginUser(user_email, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
             this.logger.error(`Did not connect to database`);
@@ -166,7 +169,7 @@ class DBManager {
             return;
         }
         
-        let insert_user = `INSERT INTO Users(user_email) VALUES(?);`;
+        let insert_user = `INSERT INTO Users(user_email, user_email_md5) VALUES(?,?);`;
         let encrypted_email = CryptoJS.AES.encrypt(
             user_email,
             CryptoJS.enc.Base64.parse(this.aes_key),
@@ -176,7 +179,7 @@ class DBManager {
             }
         );
         let hashed_email = CryptoJS.MD5(encrypted_email.toString()).toString();
-        let insert_user_list = [encrypted_email.toString()]
+        let insert_user_list = [encrypted_email.toString(), hashed_email]
         
         this.logger.debug(`encrypted_email: ${encrypted_email}`);
         this.logger.debug(`hashed_email: ${hashed_email}`);
@@ -186,18 +189,40 @@ class DBManager {
             this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
             // failed to insert, duplicate user_email
             if (error) {
-                handler(new Error("Failed to insert new user, duplicate user_email"), null);
+                let select_user = `SELECT user_id FROM Users WHERE user_email_md5 = ?;`;
+                let select_user_list = [hashed_email]
+                this.db.query(select_user, select_user_list, (error2, result2) => {
+                    this.logger.debug(`result2: ${JSON.stringify(result2,null,2)}`);
+                    this.logger.debug(`error2: ${JSON.stringify(error2,null,2)}`);
+                    if (error2 || result2.length != 1) {
+                        handler(new Error("Failed to find user_id or user_email not matching"), null);
+                        return;
+                    }
+                    
+                    // found user, generate jwt with user_id & hashed_email
+                    this.logger.info(`Login existing user, user_id=${result2[0].user_id}`);
+                    let jwt_output = jwt.sign(
+                        {user_id:result2[0].user_id, hashed_email:hashed_email},
+                        Buffer.from(this.jwt_secret, 'base64'),
+                        {algorithm:"HS256", expiresIn:"2 days"}
+                    );
+                    this.logger.debug(`jwt_output: ${jwt_output}`);
+                    handler(null, jwt_output)
+                    return;
+                });
+            }
+            // insert success, generate jwt with user_id & hashed_email
+            else {
+                this.logger.info(`Create new user, user_id=${result.insertId}`);
+                let jwt_output = jwt.sign(
+                    {user_id:result.insertId, hashed_email:hashed_email},
+                    Buffer.from(this.jwt_secret, 'base64'),
+                    {algorithm:"HS256", expiresIn:"2 days"}
+                );
+                this.logger.debug(`jwt_output: ${jwt_output}`);
+                handler(null, jwt_output)
                 return;
             }
-            
-            // insert success, generate jwt with user_id & hashed_email
-            let jwt_output = jwt.sign(
-                {user_id:result.insertId, hashed_email:hashed_email},
-                Buffer.from(this.jwt_secret, 'base64'),
-                {algorithm:"HS256", expiresIn:"2 days"}
-            );
-            this.logger.debug(`jwt_output: ${jwt_output}`);
-            handler(null, jwt_output)
         })
     }
     
@@ -216,8 +241,8 @@ class DBManager {
                 handler(new Error("Invalid JWT"), null);
                 return;
             } else {
-                let get_email = `SELECT user_email FROM Users WHERE user_id = ?;`;
-                let get_email_list = [payload.user_id];
+                let get_email = `SELECT user_email FROM Users WHERE user_id = ? AND user_email_md5 = ?;`;
+                let get_email_list = [payload.user_id, payload.hashed_email];
                 this.db.query(get_email, get_email_list, (error, result) => {
                     this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
                     this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
@@ -302,6 +327,93 @@ class DBManager {
                         this.logger.debug(`result2: ${JSON.stringify(result2,null,2)}`);
                         this.logger.debug(`error2: ${JSON.stringify(error2,null,2)}`);
                         this.db.query(update_user, [upload_count, flag_count, result[0].user_id], handler);
+                    });
+                } else {
+                    handler(new Error("Cannot find upload job uuid"), null);
+                }
+            });
+        } catch (query_error) {
+            this.logger.error(`query_error: ${query_error.stack}`);
+            this.dropConnection();
+        }
+    }
+    
+    registerUserRegistrationJob(job_expire, handler)
+    {
+        if (this.establishedConnection == null || this.db == null) {
+            this.logger.error(`Did not connect to database`);
+            handler(new Error(`Did not connect to database`), null);
+            return;
+        }
+        
+        // we use an uuid to identify a job
+        let job_uuid = uuid.v4();
+        let now = getUnixTimestampNow();
+        let expires = now + job_expire;
+        // AES 256-bit random key
+		let aes_key = CryptoJS.lib.WordArray.random(32);
+		aes_key = aes_key.toString(CryptoJS.enc.Base64);
+        try {
+            let insert_job = `
+            INSERT INTO RegistrationJobs
+            VALUES(UUID_TO_BIN(?), ?, ?)
+            ;`
+            let insert_job_list = [job_uuid, expires, aes_key];
+            
+            this.db.query(insert_job, insert_job_list, (error, result) => {
+                this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+                // duplicate uuid
+                if (result == undefined || result.affectedRows <= 0) {
+                    this.logger.warn(`duplicate uuid`);
+                    handler(new Error("Duplicate UUID"), null);
+                } else {
+                    handler(null, {job_uuid:job_uuid, expires:expires, key:aes_key});
+                }
+            });
+        } catch (query_error) {
+            this.logger.error(`query_error: ${query_error.stack}`);
+            this.dropConnection();
+        }
+    }
+    
+    finishUserRegistrationJob(job_uuid, encrypted_email, handler)
+    {
+        if (this.establishedConnection == null || this.db == null) {
+            this.logger.error(`Did not connect to database`);
+            handler(new Error(`Did not connect to database`), null);
+            return;
+        }
+        
+        try {
+            let select_job = `SELECT * FROM RegistrationJobs WHERE uuid = UUID_TO_BIN(?);`;
+            let select_job_list = [job_uuid];
+            
+            this.db.query(select_job, select_job_list, (error, result) => {
+                this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+                this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+                if (error) {
+                    handler(error, null);
+                    return;
+                }
+                if (result.length == 1) {
+                    this.db.query(`DELETE FROM RegistrationJobs WHERE uuid = UUID_TO_BIN(?);`, [job_uuid], (error2, result2) => {
+                        this.logger.debug(`result2: ${JSON.stringify(result2,null,2)}`);
+                        this.logger.debug(`error2: ${JSON.stringify(error2,null,2)}`);
+                        if (error2) {
+                            handler(new Error("Failed to finish Registration Job"), null);
+                            return;
+                        }
+                        
+                        let decrypted_email = CryptoJS.AES.decrypt(
+                            CryptoJS.enc.Base64.parse(encrypted_email),
+                            CryptoJS.enc.Base64.parse(result[0].aes_key),
+                            {
+                                mode: CryptoJS.mode.CBC,
+                                iv: CryptoJS.enc.Utf8.parse("0000000000000000"),
+                            }
+                        ).toString();
+                        this.logger.debug(`decrypted_email: ${decrypted_email}`);
+                        handler(null, {user_email:decrypted_email});
                     });
                 } else {
                     handler(new Error("Cannot find upload job uuid"), null);

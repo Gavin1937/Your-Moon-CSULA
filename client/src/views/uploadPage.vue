@@ -45,36 +45,6 @@ let data = reactive({
   mapReady: false
 })
 
-//function when user clicks no -that location on google maps is wrong
-function closeMapAndResetLatLonFields(){
-	data.mapReady = false;
-	data.latitude = '';
-	data.longitude = '';
-}
-
-//lat range -90 - 90, lon -180 - 180, would cause error on Google Map if not valid lat and lon
-function validateCoords(){
-	if(data.latitude >= -90 && data.latitude <= 90){
-		if(data.longitude >= -180 && data.longitude <= 180){
-			data.message = ""
-			showCoordsOnMap()
-		}
-	}else{
-		data.invalidCoords = true;
-		data.message = "Invalid coordinates";
-		data.latitude = "";
-		data.longitude = "";
-	}
-	
-}
-
-function showCoordsOnMap(){
-	const city = nearestCity({latitude: data.latitude, longitude: data.longitude});
-	const qParam = city.name.replace(" ", "+");
-	data.iframe.src= `https://www.google.com/maps/embed/v1/place?key=${config.GOOGLE_API_KEY}&q=${qParam}&center=${data.latitude},${data.longitude}`;
-	data.mapReady = true;
-}
-
 function getScaledCropData() {
   // Gets cropBoxData and scales it up to the scale of the original image.
   try {
@@ -355,19 +325,6 @@ async function uploadCroppedImage() {
       <div class="status-message" v-if="fileSizeExceeded || !isValidFileType || invalidCoords">
         {{ data.message }}
       </div>
-	  <div v-if="data.mapReady">
-		<iframe
-  			width="450"
-  			height="250"
-  			frameborder="0" style="border:0"
-  			referrerpolicy="no-referrer-when-downgrade"
-  			:src="data.iframe.src"
-  			allowfullscreen>
-		</iframe>
-		<p>Can you confirm location from where Moon shot was taken?</p>
-		<button @click="closeMapAndResetLatLonFields">No</button>
-		<button @click="uploadCroppedImage">Yes</button>
-	  </div>
       <div v-if="data.croppedImage">
         <div class="cent">
           <div id="image-upload">

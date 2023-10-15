@@ -340,7 +340,7 @@ app.post("/api/authUser", (req, res) => {
 		logger.debug(JSON.stringify(req.body));
 		
 		// TODO: retrieve email from OAuth 2.0
-		const { user_email, uuid } = req.query;
+		const { user_email, uuid } = req.body;
 		logger.debug(`user_email: ${user_email}`);
 		logger.debug(`uuid: ${uuid}`);
 		

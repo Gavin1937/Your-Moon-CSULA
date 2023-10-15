@@ -300,7 +300,39 @@ app.post("/api/picMetadata", (req, res) => {
 	}
 });
 
-//! This is a demo endpoint, we can do user authentication in auth.js
+app.get("/api/emailAESKey", (req, res) => {
+	try {
+		logger.info("In emailAESKey");
+		logger.debug(`req.body:`);
+		logger.debug(JSON.stringify(req.body));
+		
+		db.registerUserRegistrationJob(300, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+			if (error) {
+				logger.error(`error:\n${error}`);
+				res.status(400).json({
+					status: "KEY GENERATION FAILED ! ❌",
+					message: error.toString(),
+				});
+			}
+			else {
+				res.status(200).json({
+					status: "NEW AES KEY",
+					...result
+				});
+			}
+		})
+	}
+	catch (error) {
+		logger.error(`Exception:\n${error.stack}`);
+		res.status(500).json({
+			status: "KEY GENERATION FAILED ! ❌",
+			message: "Internal Server Error",
+		});
+	}
+})
+
 app.post("/api/authUser", (req, res) => {
 	try {
 		logger.info("In authUser");
@@ -308,36 +340,48 @@ app.post("/api/authUser", (req, res) => {
 		logger.debug(JSON.stringify(req.body));
 		
 		// TODO: retrieve email from OAuth 2.0
-		const { user_email } = req.query;
+		const { user_email, uuid } = req.query;
 		logger.debug(`user_email: ${user_email}`);
+		logger.debug(`uuid: ${uuid}`);
 		
-		db.registerUser(user_email, (error, result) => {
+		db.finishUserRegistrationJob(uuid, user_email, (error, result) => {
             logger.debug(`result: ${JSON.stringify(result,null,2)}`);
             logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
-				logger.error(`error:\n${error}`);
-				let message = null;
-				if (error.toString().includes("duplicate")) {
-					message = "DUPLICATE EMAIL";
-				} else {
-					message = "FAILED TO REGISTER USER";
-				}
 				res.status(400).json({
-					status: "REGISTER FAILED ! ❌",
-					message: message,
+					status: "REGISTER OR LOGIN FAILED ! ❌",
+					message: "FAILED TO DECRYPT EMAIL",
 				});
-				logger.error(message);
+				return;
 			}
 			else {
-				// response with jwt
-				res.status(200).json(result);
+				db.registerOrLoginUser(result.user_email, (error, result) => {
+					logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+					logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+					if (error) {
+						logger.error(`error:\n${error}`);
+						let message = null;
+						if (error) {
+							message = "FAILED TO REGISTER OR LOGIN USER";
+						}
+						res.status(400).json({
+							status: "REGISTER OR LOGIN FAILED ! ❌",
+							message: message,
+						});
+						logger.error(message);
+					}
+					else {
+						// response with jwt
+						res.status(200).json(result);
+					}
+				});
 			}
 		});
 	}
 	catch (error) {
 		logger.error(`Exception:\n${error.stack}`);
 		res.status(500).json({
-			status: "UPLOAD FAILED ! ❌",
+			status: "SERVER FAILED ! ❌",
 			message: "Internal Server Error",
 		});
 	}

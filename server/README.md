@@ -49,7 +49,7 @@
 }
 ```
 
-* Note that both `aes_key` and `jwt_secret` are saved as base64 encoded strings. To create them, you can run following python script in any python 3.x environment. (I suggest [this website](https://www.programiz.com/python-programming/online-compiler/) for anyone don't want to install python)
+* Note that both `aes_key` and `jwt_secret` are saved as base64 encoded strings. To create them, you can run following python script in any python 3.x environment. (I suggest [this website](https://www.programiz.com/python-programming/online-compiler/) for anyone who don't want to install python)
 
 ```py
 from random import randbytes

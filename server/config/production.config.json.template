@@ -22,7 +22,7 @@
         "region": "us-west-2",
         "bucket_name": "my-bucket-name"
     },
-        "oauth":{
+    "oauth":{
         "github":{
             "clientId":"somesecretid",
             "clientSecret":"somesecretsecret"

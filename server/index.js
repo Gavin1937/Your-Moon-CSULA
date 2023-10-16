@@ -16,6 +16,10 @@ const cookieParser = require("cookie-parser");
 const DBManager = require('./DBManager.js');
 var logger = require('./logger.js')(config.log_file, config.log_level);
 var db = new DBManager(config.db, config.aes_key, config.jwt_secret, logger);
+const passport = require("passport");
+const passportSetup = require("./passport");
+const session = require('express-session');
+const authRoutes = require("./routes/auth");
 
 
 // parse application/x-www-form-urlencoded
@@ -25,11 +29,23 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.use(express.json());
+
+app.use(session({
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}));
+
+
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(cors({
 	credentials: true,
 	origin: config.cors_origin_whitelist
 }));
 app.use(cookieParser());
+app.use("/api/auth", authRoutes)
 
 
 // file filter to only allow image file types ()
@@ -284,7 +300,39 @@ app.post("/api/picMetadata", (req, res) => {
 	}
 });
 
-//! This is a demo endpoint, we can do user authentication in auth.js
+app.get("/api/emailAESKey", (req, res) => {
+	try {
+		logger.info("In emailAESKey");
+		logger.debug(`req.body:`);
+		logger.debug(JSON.stringify(req.body));
+		
+		db.registerUserRegistrationJob(300, (error, result) => {
+            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+			if (error) {
+				logger.error(`error:\n${error}`);
+				res.status(400).json({
+					status: "KEY GENERATION FAILED ! ❌",
+					message: error.toString(),
+				});
+			}
+			else {
+				res.status(200).json({
+					status: "NEW AES KEY",
+					...result
+				});
+			}
+		})
+	}
+	catch (error) {
+		logger.error(`Exception:\n${error.stack}`);
+		res.status(500).json({
+			status: "KEY GENERATION FAILED ! ❌",
+			message: "Internal Server Error",
+		});
+	}
+})
+
 app.post("/api/authUser", (req, res) => {
 	try {
 		logger.info("In authUser");
@@ -292,36 +340,48 @@ app.post("/api/authUser", (req, res) => {
 		logger.debug(JSON.stringify(req.body));
 		
 		// TODO: retrieve email from OAuth 2.0
-		const { user_email } = req.query;
+		const { user_email, uuid } = req.body;
 		logger.debug(`user_email: ${user_email}`);
+		logger.debug(`uuid: ${uuid}`);
 		
-		db.registerUser(user_email, (error, result) => {
+		db.finishUserRegistrationJob(uuid, user_email, (error, result) => {
             logger.debug(`result: ${JSON.stringify(result,null,2)}`);
             logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
-				logger.error(`error:\n${error}`);
-				let message = null;
-				if (error.toString().includes("duplicate")) {
-					message = "DUPLICATE EMAIL";
-				} else {
-					message = "FAILED TO REGISTER USER";
-				}
 				res.status(400).json({
-					status: "REGISTER FAILED ! ❌",
-					message: message,
+					status: "REGISTER OR LOGIN FAILED ! ❌",
+					message: "FAILED TO DECRYPT EMAIL",
 				});
-				logger.error(message);
+				return;
 			}
 			else {
-				// response with jwt
-				res.status(200).json(result);
+				db.registerOrLoginUser(result.user_email, (error, result) => {
+					logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+					logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+					if (error) {
+						logger.error(`error:\n${error}`);
+						let message = null;
+						if (error) {
+							message = "FAILED TO REGISTER OR LOGIN USER";
+						}
+						res.status(400).json({
+							status: "REGISTER OR LOGIN FAILED ! ❌",
+							message: message,
+						});
+						logger.error(message);
+					}
+					else {
+						// response with jwt
+						res.status(200).json(result);
+					}
+				});
 			}
 		});
 	}
 	catch (error) {
 		logger.error(`Exception:\n${error.stack}`);
 		res.status(500).json({
-			status: "UPLOAD FAILED ! ❌",
+			status: "SERVER FAILED ! ❌",
 			message: "Internal Server Error",
 		});
 	}
@@ -332,11 +392,12 @@ app.get("/api/verifyUser", (req, res) => {
 	try {
 		logger.info("In verifyUser");
 		logger.debug(`req.body:`);
-		logger.debug(JSON.stringify(req.body));
+		//logger.debug(JSON.stringify(req.body));
 		
 		// user_jwt is inside http header: authorization
-		const user_jwt = req.headers.authorization;
-		logger.debug(`user_jwt: ${user_jwt}`);
+		let user_jwt = req.cookies.token;
+		logger.debug("user_jwt")
+		logger.info(`user_jwt: ${user_jwt}`);
 		
 		db.verifyUserJWT(user_jwt, (error, result) => {
             logger.debug(`result: ${JSON.stringify(result,null,2)}`);

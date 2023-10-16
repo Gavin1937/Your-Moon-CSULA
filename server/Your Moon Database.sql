@@ -6,9 +6,10 @@ USE YourMoonDB;
 CREATE TABLE IF NOT EXISTS Users(
     user_id             INT              AUTO_INCREMENT PRIMARY KEY NOT NULL,
     user_email          VARCHAR(256)     NOT NULL, -- encrypted email
+    user_email_md5      VARCHAR(32)      NOT NULL, -- encrypted email md5
     user_upload_count   INT              DEFAULT 0,
     user_flag_count     INT              DEFAULT 0,
-    CONSTRAINT unique_inst UNIQUE (user_email)
+    CONSTRAINT unique_inst UNIQUE (user_email,user_email_md5)
 );
 
 CREATE TABLE IF NOT EXISTS Instruments(
@@ -47,4 +48,10 @@ CREATE TABLE IF NOT EXISTS UploadJobs(
     uuid                BINARY(16)       PRIMARY KEY NOT NULL,
     expires             INT              NOT NULL,
     user_id             INT              NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS RegistrationJobs(
+    uuid                BINARY(16)       PRIMARY KEY NOT NULL,
+    expires             INT              NOT NULL,
+    aes_key             VARCHAR(128)     NOT NULL
 );

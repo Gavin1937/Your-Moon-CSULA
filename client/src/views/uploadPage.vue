@@ -382,7 +382,7 @@ async function uploadCroppedImage() {
 
 <template>
   <body class="background">
-    <div class="container d-flex justify-content-center align-items-center">
+    <div class="content-block d-flex justify-content-center align-items-center">
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
@@ -554,6 +554,17 @@ async function uploadCroppedImage() {
 
 <!-- eslint-disable prettier/prettier -->
 <style>
+  .content-block {
+    font-family: monospace;
+    max-width: 100rem;
+    background-color: #3C3C3C; 
+    padding: 30px;
+    margin-top: 20px;
+    border: 2px solid #E6E6E6; 
+    margin-left: auto;
+    margin-right: auto;
+  }
+
 .move {
   margin-left: 5px;
 }
@@ -651,13 +662,7 @@ async function uploadCroppedImage() {
   padding-top: 1%;
 }
 
-.background {
-  /*background-color: black; 
-	*/
-  background-repeat: no-repeat;
-  background-image: url("moon_phases.jpg");
-  background-size: cover;
-}
+
 
 #image-upload,
 .status-message {

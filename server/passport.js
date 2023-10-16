@@ -1,32 +1,19 @@
-require('dotenv').config();
-var config = null;
-if (process.env.NODE_ENV === "production") {
-	config = require("./config/production.config.json");
-} else {
-	config = require("./config/dev.config.json");
-}
-
+module.exports = (oauth_config, db, logger) => {
 
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
-const passport = require('passport');
-//const crypto = require("crypto");
-const DBManager = require('./DBManager.js');
-var logger = require('./logger.js')(config.log_file, config.log_level);
-var db = new DBManager(config.db, config.aes_key, config.jwt_secret, logger);
-
-
+var passport = require('passport');
 
 
 passport.use(new GitHubStrategy({
-  clientID: config.oauth.github.clientId,
-  clientSecret: config.oauth.github.clientSecret,
+  clientID: oauth_config.github.clientId,
+  clientSecret: oauth_config.github.clientSecret,
   scope:['user:email'],
   callbackURL: "/api/auth/github/callback"
 },
 function(accessToken, refreshToken, profile, cb) {
   const email = profile.emails[0].value;
-  db.registerUser(email, (err, profile) =>{
+  db.registerOrLoginUser(email, (err, profile) =>{
     if(err){
       logger.error(err)
       return done(err)
@@ -38,13 +25,13 @@ function(accessToken, refreshToken, profile, cb) {
 ));
 
 passport.use(new GoogleStrategy({
-    clientID: config.oauth.google.clientId,
-    clientSecret: config.oauth.google.clientSecret,
+    clientID: oauth_config.google.clientId,
+    clientSecret: oauth_config.google.clientSecret,
     callbackURL: "/api/auth/google/callback"
   },
   function(accessToken, refreshToken, profile, done) {
     const email = profile.emails[0].value;
-    db.registerUser(email, (err, jwtToken) =>{
+    db.registerOrLoginUser(email, (err, jwtToken) =>{
       if(err){
         logger.error(err);
         return done(err);
@@ -64,3 +51,7 @@ passport.serializeUser(function(user, done) {
 passport.deserializeUser(function(user, done) {
   done(null, user);
 });
+
+return passport;
+
+}

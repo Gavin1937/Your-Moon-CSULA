@@ -1,7 +1,7 @@
 const mysql = require("mysql2");
 const uuid = require("uuid");
 const jwt = require('jsonwebtoken');
-const CryptoJS = require("crypto-js")
+const CryptoJS = require("crypto-js");
 
 
 function getUnixTimestampNow() {

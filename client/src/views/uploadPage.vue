@@ -405,6 +405,7 @@ async function uploadCroppedImage() {
           :movable="false"
           :viewMode="3"
           :restore="false"
+          :responsive="false"
           :aspectRatio="1"
           :scaleX="1"
           :scaleY="1"

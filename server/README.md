@@ -16,6 +16,7 @@
     "app_host": "localhost",
     "app_port": 3001,
     "max_upload_size": 31457280, // 30MB
+    "upload_job_expire": 300,
     "log_file": "/path/to/your-moon-server.log",
     "log_level": "debug",
     "aes_key": "Base64_aes_key_256_bits_for_email_encryption",

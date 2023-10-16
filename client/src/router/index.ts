@@ -6,7 +6,7 @@ import landingPage from "../views/landingPage.vue";
 import axios from 'axios';
 import config from "../../config/config.json";
 const routes = [
-    {path: '/upload', name: 'Upload', component: uploadPage, meta:{requiresAuth:false}},
+    {path: '/upload', name: 'Upload', component: uploadPage, meta:{requiresAuth:true}},
     {path: '/', name: 'LandingPage', component: landingPage}
 ]
 
@@ -44,7 +44,7 @@ router.beforeEach(async (to, from, next) => {
     const authenticated = await isAuthenticated();
     if (!authenticated) {
       next({
-        path: '/login',
+        path: '/',
         query: { redirect: to.fullPath }
       });
     } else {

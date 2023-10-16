@@ -57,6 +57,8 @@ from base64 import b64encode
 print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8'))
 ```
 
+* Also Note that `aes_key` is the key used for encrypt email, if you lost it, you cannot decrypt emails in the database anymore.
+
 * Note that `cors_origin_whitelist` is a list of urls to the the frontend, they are whitelist for cors cross origin protection. This is because we need to send credentials (cookie) from the frontend to backend.
 
 3. you can use `.template` files under `src/server/config/` as your starting point

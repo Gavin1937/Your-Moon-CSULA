@@ -26,7 +26,7 @@ passport.use(new GitHubStrategy({
 },
 function(accessToken, refreshToken, profile, cb) {
   const email = profile.emails[0].value;
-  db.registerUser(email, (err, profile) =>{
+  db.registerOrLoginUser(email, (err, profile) =>{
     if(err){
       logger.error(err)
       return done(err)
@@ -44,7 +44,7 @@ passport.use(new GoogleStrategy({
   },
   function(accessToken, refreshToken, profile, done) {
     const email = profile.emails[0].value;
-    db.registerUser(email, (err, jwtToken) =>{
+    db.registerOrLoginUser(email, (err, jwtToken) =>{
       if(err){
         logger.error(err);
         return done(err);

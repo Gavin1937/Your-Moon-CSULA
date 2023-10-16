@@ -5,6 +5,7 @@
     "upload_job_expire": 300,
     "log_file": "/src/data/your-moon-server.log",
     "log_level": "info",
+    "session_key": "Base64_random_bytes_for_express_session_secret",
     "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
     "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
     "cors_origin_whitelist": [

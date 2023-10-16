@@ -19,6 +19,7 @@
     "upload_job_expire": 300,
     "log_file": "/path/to/your-moon-server.log",
     "log_level": "debug",
+    "session_key": "Base64_random_bytes_for_express_session_secret",
     "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
     "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
     "cors_origin_whitelist": [
@@ -50,7 +51,7 @@
 }
 ```
 
-* Note that both `aes_key` and `jwt_secret` are saved as base64 encoded strings. To create them, you can run following python script in any python 3.x environment. (I suggest [this website](https://www.programiz.com/python-programming/online-compiler/) for anyone who don't want to install python)
+* Note that both `aes_key`, `jwt_secret`, and `session_key` are saved as base64 encoded strings. To create them, you can run following python script in any python 3.x environment. (I suggest [this website](https://www.programiz.com/python-programming/online-compiler/) for anyone who don't want to install python)
 
 ```py
 from random import randbytes

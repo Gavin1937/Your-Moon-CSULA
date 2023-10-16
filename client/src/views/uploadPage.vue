@@ -127,7 +127,6 @@ function showCoordsOnMap(){
   }
   
   let bbox = LonLat_to_bbox(city.latitude,city.longitude,9.5);
-  console.log(`bbox: ${bbox}`);
   let bbox_str = `${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]},`
   
   data.iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox_str}&layer=mapnik&marker=${city.latitude},${city.longitude}`
@@ -154,7 +153,6 @@ function getScaledCropData() {
 
 async function onCropperReady() {
   try {
-    console.log(data.moon_position.x)
     // The Cropper canvas scales down so the crop box needs to compensate for the scale.
     // naturalWidth and naturalHeight are the original dimensions of the image.
     // The width and height both scale equally so only width will be used.
@@ -222,6 +220,9 @@ async function onFileChange(e) {
         if (data.file.size <= data.maxFileSize) {
           data.fileSizeExceeded = false;
           data.message = "";
+          // force cropper js to reload imageDataUrl
+          data.imageDataUrl = "";
+          data.showCropper = false;
           const reader = new FileReader();
           updateMetaData();
           reader.onload = (e) => {
@@ -312,11 +313,10 @@ async function RunDetectMoon(_fileObject, _type = "square") {
   }
 }
 async function onMoonPositionUpdate(new_position_circle, new_position) {
-  console.log('moon_position:', new_position);
   data.moon_position_circle = { x: new_position_circle.x, y: new_position_circle.y, radius: new_position_circle.radius };
   if (new_position.type == "square") {
     data.moon_position = { x: new_position.x, y: new_position.y, width: new_position.width }
-    console.log(data.moon_position)
+    console.log('moon_position:',data.moon_position)
   }
 }
 // function that gets the cropped image and sends it to server-side
@@ -422,10 +422,6 @@ async function uploadCroppedImage() {
       allowfullscreen
     >
     </iframe>
-    <br/>
-    <small>
-      <a href="https://www.openstreetmap.org/?mlat=40.747&amp;mlon=-113.379#map=8/40.747/-113.379">View Larger Map</a>
-    </small>
 		<p>Can you confirm location from where Moon shot was taken?</p>
 		<button @click="closeMapAndResetLatLonFields">No</button>
 		<button @click="uploadCroppedImage">Yes</button>

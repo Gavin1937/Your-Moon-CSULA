@@ -16,8 +16,8 @@ const cookieParser = require("cookie-parser");
 const DBManager = require('./DBManager.js');
 var logger = require('./logger.js')(config.log_file, config.log_level);
 var db = new DBManager(config.db, config.aes_key, config.jwt_secret, logger);
-const passport = require("passport");
-const passportSetup = require("./passport");
+const CryptoJS = require("crypto-js");
+const passport = require("./passport.js")(config.oauth, db, logger);
 const session = require('express-session');
 const authRoutes = require("./routes/auth");
 
@@ -31,10 +31,12 @@ app.use(bodyParser.json());
 app.use(express.json());
 
 app.use(session({
-  secret: 'keyboard cat',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }
+	// express-session needs a secret for signing sessions with HMAC
+	// we use a session_key from config file to ensure its security
+	secret: CryptoJS.enc.Base64.parse(config.session_key).toString(CryptoJS.enc.Hex),
+	resave: false,
+	saveUninitialized: false,
+	cookie: { secure: false }
 }));
 
 

@@ -16,7 +16,7 @@ router.get("/google",
 )
 
 router.get('/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
+  passport.authenticate('google', { failureRedirect: '/' }),
   function(req, res) {
     res.cookie('token', req.user, {
       httpOnly: true,
@@ -33,7 +33,7 @@ router.get('/github', passport.authenticate(
 ));
 
 router.get("/github/callback", 
-    passport.authenticate('google', { failureRedirect: '/login' }),
+    passport.authenticate('google', { failureRedirect: '/' }),
     function(req, res) {
     res.cookie('token', req.user, {
         httpOnly: true,

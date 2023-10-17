@@ -13,7 +13,7 @@ import axios from "axios";
 import ExifReader from "exifreader";
 import { ref, reactive } from "vue";
 import MoonRegistration from "../moon-registration";
-import config from '../../config/config.json' 
+import config from "../../config/config.json";
 
 // This is the ref to the cropper DOM element
 const cropr = ref(null);

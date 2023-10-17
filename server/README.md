@@ -9,7 +9,12 @@
    * Else
      * server will looking for file `dev.config.json`
    * This tutorial will use `dev.config.json` as example
-2. add following configuration in it
+2. you can tell the server to use either **AWS S3** or **file system** as storage method by setting the environment variable `STORAGE_METHOD`
+   * If environment variable `STORAGE_METHOD` is set to `s3`
+     * server will use **AWS S3** as multer storage method
+   * Otherwise
+     * server will save images in **file system**
+3. add following configuration in it
 
 ```jsonc
 {
@@ -63,7 +68,7 @@ print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8')
 
 * Note that `cors_origin_whitelist` is a list of urls to the the frontend, they are whitelist for cors cross origin protection. This is because we need to send credentials (cookie) from the frontend to backend.
 
-3. you can use `.template` files under `src/server/config/` as your starting point
+4. you can use `.template` files under `src/server/config/` as your starting point
 
 
 ## Deploy

@@ -2,7 +2,7 @@ module.exports = (oauth_config, db, logger) => {
 
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
-var passport = require('passport');
+const passport = require('passport');
 
 
 passport.use(new GitHubStrategy({

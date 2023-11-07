@@ -382,7 +382,7 @@ async function uploadCroppedImage() {
 
 <template>
   <body class="background">
-    <div class="content-block d-flex justify-content-center align-items-center">
+    <div class="container content-block d-flex justify-content-center align-items-center">
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />

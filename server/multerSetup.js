@@ -67,7 +67,8 @@ const storeImg = multer.diskStorage({
 		cb(null, "uploadedImages");		// uploads to 'uploadedImages' folder
 	},
 	filename: (req, file, cb) => {
-		cb(null, `image-${Date.now()}.${file.originalname}`);
+		// TODO: we should check md5 in file.originalname against its real md5, just in case file upload failed
+		cb(null, file.originalname);
 	},
 });
 upload = multer({

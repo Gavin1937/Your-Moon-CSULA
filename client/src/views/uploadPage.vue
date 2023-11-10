@@ -2,6 +2,7 @@
 <script setup>
 import Cropper from "vue-cropperjs";
 import "cropperjs/dist/cropper.css";
+import CryptoJS from 'crypto-js';
 import axios from "axios";
 import ExifReader from "exifreader";
 import { ref, reactive } from "vue";
@@ -40,6 +41,7 @@ let data = reactive({
   file: null,
   fileType: '',
   imageDataUrl: null,
+  imageHash: null,
   showCropper: false,
   croppedImage: null,
   mapReady: false
@@ -222,6 +224,7 @@ async function onFileChange(e) {
           data.message = "";
           // force cropper js to reload imageDataUrl
           data.imageDataUrl = "";
+          data.imageHash = "";
           data.showCropper = false;
           const reader = new FileReader();
           updateMetaData();
@@ -229,6 +232,12 @@ async function onFileChange(e) {
             data.imageDataUrl = e.target.result;
             data.showCropper = true;
             data.croppedImage = true;
+            // DataUrl looks like:
+            // data:<MIME-TYPE>;base64,<BASE-64 DATA>
+            // we need to extract only the <BASE-64 DATA> part
+            let b64content = e.target.result.substr(e.target.result.indexOf(';base64,')+8)
+            data.imageHash = CryptoJS.MD5(CryptoJS.enc.Base64.parse(b64content)).toString();
+            console.log(data.imageHash)
           };
           reader.readAsDataURL(data.file);
           RunDetectMoon(data.file);
@@ -323,6 +332,7 @@ async function onMoonPositionUpdate(new_position_circle, new_position) {
 async function uploadCroppedImage() {
   try {
     // make post request to upload image to database
+    let img_filename = `${data.imageHash}.${data.file.type.split('/')[1]}`;
     let metadata_params = {
       "instrument": {
         "inst_type": "phone", // TODO: add additional drop-down menu for instrument type. ("phone", "camera", "phone+telescope", "camera+telescope")
@@ -330,9 +340,9 @@ async function uploadCroppedImage() {
         "inst_model": data.model
       },
       "image": {
-        "img_name": data.file.name,
+        "img_name": img_filename,
         "img_type": data.file.type,
-        "img_uri": `./${data.file.name}`, // TODO: file uri should be determined by the server
+        "img_uri": './'+img_filename, // TODO: file uri should be determined by the server
         "img_altitude": Number.parseFloat(data.altitude),
         "img_longitude": Number.parseFloat(data.longitude),
         "img_latitude": Number.parseFloat(data.latitude),
@@ -359,7 +369,12 @@ async function uploadCroppedImage() {
         });
       });
       const formData = new FormData();
-      formData.append("lunarImage", imgFile, data.fileType);
+      formData.append(
+        "lunarImage",
+        // we can rename imgFile by re-create a new File obj
+        new File([imgFile], metadata_params.image.img_name, {type: data.fileType}),
+        data.fileType
+      );
       const upload_res = await axios.post(
         `${config.backend_url}/api/picUpload?upload_uuid=${meta_res.data.upload_uuid}`,
         formData,

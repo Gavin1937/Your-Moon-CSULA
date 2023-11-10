@@ -419,6 +419,8 @@ async function uploadCroppedImage() {
           :zoomOnTouch="false"
           :movable="false"
           :viewMode="3"
+          :dragMode="'move'"
+          :toggleDragModeOnDblclick="false"
           :restore="false"
           :responsive="false"
           :aspectRatio="1"

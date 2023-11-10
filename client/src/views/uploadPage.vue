@@ -2,6 +2,7 @@
 <script setup>
 import Cropper from "vue-cropperjs";
 import "cropperjs/dist/cropper.css";
+import CryptoJS from 'crypto-js';
 import axios from "axios";
 import ExifReader from "exifreader";
 import { ref, reactive } from "vue";
@@ -40,10 +41,99 @@ let data = reactive({
   file: null,
   fileType: '',
   imageDataUrl: null,
+  imageHash: null,
   showCropper: false,
   croppedImage: null,
   mapReady: false
 })
+
+//function when user clicks no -that location on OpenStreetMaps is wrong
+function closeMapAndResetLatLonFields(){
+	data.mapReady = false;
+	data.latitude = '';
+	data.longitude = '';
+}
+
+//lat range -90 - 90, lon -180 - 180, would cause error on OpenStreetMaps if not valid lat and lon
+function validateCoords(){
+	if(data.latitude >= -90 && data.latitude <= 90){
+		if(data.longitude >= -180 && data.longitude <= 180){
+			data.message = ""
+			showCoordsOnMap()
+		}
+	}else{
+		data.invalidCoords = true;
+		data.message = "Invalid coordinates";
+		data.latitude = "";
+		data.longitude = "";
+	}
+	
+}
+
+function showCoordsOnMap(){
+	const city = nearestCity({latitude: data.latitude, longitude: data.longitude});
+	const qParam = city.name.replace(" ", "+");
+  
+  // lat, lon, zoom to OSM bounding box
+  // https://stackoverflow.com/a/17811173
+  function rad2deg(radians)
+  {
+    var pi = Math.PI;
+    return radians * (180/pi);
+  }
+  function deg2rad(degrees)
+  {
+    var pi = Math.PI;
+    return degrees * (pi/180);
+  }
+  // trigonometry sec function
+  function sec(val) {
+    return 1/Math.cos(val);
+  }
+  
+  function getTileNumber(lat, lon, zoom) {
+    let xtile = Number.parseInt( (lon+180)/360 * 2**zoom ) ;
+    let ytile = Number.parseInt( (1 - Math.log(Math.tan(deg2rad(lat)) + sec(deg2rad(lat)))/Math.PI)/2 * 2**zoom ) ;
+    return [xtile, ytile];
+  }
+  
+  function getLonLat(xtile, ytile, zoom) {
+    let n = 2 ** zoom;
+    let lon_deg = xtile / n * 360.0 - 180.0;
+    let lat_deg = rad2deg(Math.atan(Math.sinh(Math.PI * (1 - 2 * ytile / n))));
+    return [lon_deg, lat_deg];
+  }
+  
+  // convert from permalink OSM format like:
+  // http://www.openstreetmap.org/?lat=43.731049999999996&lon=15.79375&zoom=13&layers=M
+  // to OSM "Export" iframe embedded bbox format like:
+  // http://www.openstreetmap.org/export/embed.html?bbox=15.7444,43.708,15.8431,43.7541&layer=mapnik
+  
+  function LonLat_to_bbox(lat, lon, zoom) {
+    let width = 425;
+    let height = 350; // note: must modify this to match your embed map width/height in pixels
+    let tile_size = 256;
+    
+    let [xtile, ytile] = getTileNumber (lat, lon, zoom);
+    
+    let xtile_s = (xtile * tile_size - width/2) / tile_size;
+    let ytile_s = (ytile * tile_size - height/2) / tile_size;
+    let xtile_e = (xtile * tile_size + width/2) / tile_size;
+    let ytile_e = (ytile * tile_size + height/2) / tile_size;
+    
+    let [lon_s,lat_s] = getLonLat(xtile_s, ytile_s, zoom);
+    let [lon_e,lat_e] = getLonLat(xtile_e, ytile_e, zoom);
+    
+    let bbox = [lon_s,lat_s,lon_e,lat_e];
+    return bbox;
+  }
+  
+  let bbox = LonLat_to_bbox(city.latitude,city.longitude,9.5);
+  let bbox_str = `${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]},`
+  
+  data.iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox_str}&layer=mapnik&marker=${city.latitude},${city.longitude}`
+	data.mapReady = true;
+}
 
 function getScaledCropData() {
   // Gets cropBoxData and scales it up to the scale of the original image.
@@ -65,7 +155,6 @@ function getScaledCropData() {
 
 async function onCropperReady() {
   try {
-    console.log(data.moon_position.x)
     // The Cropper canvas scales down so the crop box needs to compensate for the scale.
     // naturalWidth and naturalHeight are the original dimensions of the image.
     // The width and height both scale equally so only width will be used.
@@ -133,12 +222,22 @@ async function onFileChange(e) {
         if (data.file.size <= data.maxFileSize) {
           data.fileSizeExceeded = false;
           data.message = "";
+          // force cropper js to reload imageDataUrl
+          data.imageDataUrl = "";
+          data.imageHash = "";
+          data.showCropper = false;
           const reader = new FileReader();
           updateMetaData();
           reader.onload = (e) => {
             data.imageDataUrl = e.target.result;
             data.showCropper = true;
             data.croppedImage = true;
+            // DataUrl looks like:
+            // data:<MIME-TYPE>;base64,<BASE-64 DATA>
+            // we need to extract only the <BASE-64 DATA> part
+            let b64content = e.target.result.substr(e.target.result.indexOf(';base64,')+8)
+            data.imageHash = CryptoJS.MD5(CryptoJS.enc.Base64.parse(b64content)).toString();
+            console.log(data.imageHash)
           };
           reader.readAsDataURL(data.file);
           RunDetectMoon(data.file);
@@ -223,17 +322,17 @@ async function RunDetectMoon(_fileObject, _type = "square") {
   }
 }
 async function onMoonPositionUpdate(new_position_circle, new_position) {
-  console.log('moon_position:', new_position);
   data.moon_position_circle = { x: new_position_circle.x, y: new_position_circle.y, radius: new_position_circle.radius };
   if (new_position.type == "square") {
     data.moon_position = { x: new_position.x, y: new_position.y, width: new_position.width }
-    console.log(data.moon_position)
+    console.log('moon_position:',data.moon_position)
   }
 }
 // function that gets the cropped image and sends it to server-side
 async function uploadCroppedImage() {
   try {
     // make post request to upload image to database
+    let img_filename = `${data.imageHash}.${data.file.type.split('/')[1]}`;
     let metadata_params = {
       "instrument": {
         "inst_type": "phone", // TODO: add additional drop-down menu for instrument type. ("phone", "camera", "phone+telescope", "camera+telescope")
@@ -241,9 +340,9 @@ async function uploadCroppedImage() {
         "inst_model": data.model
       },
       "image": {
-        "img_name": data.file.name,
+        "img_name": img_filename,
         "img_type": data.file.type,
-        "img_uri": `./${data.file.name}`, // TODO: file uri should be determined by the server
+        "img_uri": './'+img_filename, // TODO: file uri should be determined by the server
         "img_altitude": Number.parseFloat(data.altitude),
         "img_longitude": Number.parseFloat(data.longitude),
         "img_latitude": Number.parseFloat(data.latitude),
@@ -270,7 +369,12 @@ async function uploadCroppedImage() {
         });
       });
       const formData = new FormData();
-      formData.append("lunarImage", imgFile, data.fileType);
+      formData.append(
+        "lunarImage",
+        // we can rename imgFile by re-create a new File obj
+        new File([imgFile], metadata_params.image.img_name, {type: data.fileType}),
+        data.fileType
+      );
       const upload_res = await axios.post(
         `${config.backend_url}/api/picUpload?upload_uuid=${meta_res.data.upload_uuid}`,
         formData,
@@ -293,7 +397,7 @@ async function uploadCroppedImage() {
 
 <template>
   <body class="background">
-    <div class="container d-flex justify-content-center align-items-center">
+    <div class="content-block d-flex justify-content-center align-items-center">
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
@@ -316,6 +420,7 @@ async function uploadCroppedImage() {
           :movable="false"
           :viewMode="3"
           :restore="false"
+          :responsive="false"
           :aspectRatio="1"
           :scaleX="1"
           :scaleY="1"
@@ -325,6 +430,18 @@ async function uploadCroppedImage() {
       <div class="status-message" v-if="fileSizeExceeded || !isValidFileType || invalidCoords">
         {{ data.message }}
       </div>
+	  <div v-if="data.mapReady">
+    <iframe width="450" height="250"
+      frameborder="0" style="border:0"
+      referrerpolicy="no-referrer-when-downgrade"
+      :src="data.iframe.src"
+      allowfullscreen
+    >
+    </iframe>
+		<p>Can you confirm location from where Moon shot was taken?</p>
+		<button @click="closeMapAndResetLatLonFields">No</button>
+		<button @click="uploadCroppedImage">Yes</button>
+	  </div>
       <div v-if="data.croppedImage">
         <div class="cent">
           <div id="image-upload">
@@ -452,6 +569,17 @@ async function uploadCroppedImage() {
 
 <!-- eslint-disable prettier/prettier -->
 <style>
+  .content-block {
+    font-family: monospace;
+    max-width: 100rem;
+    background-color: #3C3C3C; 
+    padding: 30px;
+    margin-top: 20px;
+    border: 2px solid #E6E6E6; 
+    margin-left: auto;
+    margin-right: auto;
+  }
+
 .move {
   margin-left: 5px;
 }
@@ -549,13 +677,7 @@ async function uploadCroppedImage() {
   padding-top: 1%;
 }
 
-.background {
-  /*background-color: black; 
-	*/
-  background-repeat: no-repeat;
-  background-image: url("moon_phases.jpg");
-  background-size: cover;
-}
+
 
 #image-upload,
 .status-message {

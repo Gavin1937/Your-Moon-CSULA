@@ -1,13 +1,13 @@
 
 import { createRouter, createWebHistory } from "vue-router";
 import uploadPage from "../views/uploadPage.vue";
-import loginPage from "../views/loginPage.vue";
+import landingPage from "../views/landingPage.vue";
 
 import axios from 'axios';
 import config from "../../config/config.json";
 const routes = [
     {path: '/upload', name: 'Upload', component: uploadPage, meta:{requiresAuth:true}},
-    {path: '/login', name: 'Login', component: loginPage}
+    {path: '/', name: 'LandingPage', component: landingPage}
 ]
 
 const isAuthenticated = async () => {
@@ -44,7 +44,7 @@ router.beforeEach(async (to, from, next) => {
     const authenticated = await isAuthenticated();
     if (!authenticated) {
       next({
-        path: '/login',
+        path: '/',
         query: { redirect: to.fullPath }
       });
     } else {

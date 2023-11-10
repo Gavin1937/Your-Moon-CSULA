@@ -1,7 +1,7 @@
 const mysql = require("mysql2");
 const uuid = require("uuid");
 const jwt = require('jsonwebtoken');
-const CryptoJS = require("crypto-js")
+const CryptoJS = require("crypto-js");
 
 
 function getUnixTimestampNow() {
@@ -160,7 +160,7 @@ class DBManager {
     
     // if submitted user_email does't exists, create a new user
     // otherwise, just return jwt & log exiting user in
-    // input parameter "user_email" is a decrypted email, plain text
+    // input parameter "user_email" is a decrypted email in plain text
     registerOrLoginUser(user_email, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
@@ -175,7 +175,8 @@ class DBManager {
             CryptoJS.enc.Base64.parse(this.aes_key),
             {
                 mode: CryptoJS.mode.CBC,
-                iv: CryptoJS.enc.Utf8.parse("0000000000000000"),
+                padding: CryptoJS.pad.Pkcs7,
+                iv: CryptoJS.enc.Hex.parse("00000000000000000000000000000000"),
             }
         );
         let hashed_email = CryptoJS.MD5(encrypted_email.toString()).toString();
@@ -404,14 +405,17 @@ class DBManager {
                             return;
                         }
                         
+                        // CryptoJS.AES.decrypt takes in base64 string as encrypted text
+                        // so we must not do this: CryptoJS.enc.Base64.parse(encrypted_email)
                         let decrypted_email = CryptoJS.AES.decrypt(
-                            CryptoJS.enc.Base64.parse(encrypted_email),
+                            encrypted_email,
                             CryptoJS.enc.Base64.parse(result[0].aes_key),
                             {
                                 mode: CryptoJS.mode.CBC,
-                                iv: CryptoJS.enc.Utf8.parse("0000000000000000"),
+                                padding: CryptoJS.pad.Pkcs7,
+                                iv: CryptoJS.enc.Hex.parse("00000000000000000000000000000000"),
                             }
-                        ).toString();
+                        ).toString(CryptoJS.enc.Utf8);
                         this.logger.debug(`decrypted_email: ${decrypted_email}`);
                         handler(null, {user_email:decrypted_email});
                     });

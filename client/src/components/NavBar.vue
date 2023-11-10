@@ -4,8 +4,8 @@
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 
     <!-- <img src="../views/moonFace.gif" alt="moon face" style="width:35px; height:35px;"> -->
-    <img href="#" src="../views/moon.png" alt="cartoon_moon" style="width:50px; height:50px">
-    <a class="navbar-brand" href="#"><span>Your</span>Moon</a>
+    <img href="#" src="../assets/moon.gif" alt="moon" style="width:50px; height:50px">
+    <a class="navbar-brand" href="/"><span>Your</span>Moon</a>
 
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -15,7 +15,7 @@
       <ul class="navbar-nav">
         
         <li class="nav-item">
-          <a class="nav-link"><RouterLink to="/">Upload Images</RouterLink></a>
+          <a class="nav-link"><RouterLink to="/upload">Upload Images</RouterLink></a>
         </li>
         
         <!-- <li class="nav-item">
@@ -30,7 +30,7 @@
 <!-- eslint-disable prettier/prettier -->
 <style scoped>
     span{
-      color: rgb(3, 174, 3);
+      color: hsla(160, 100%, 37%, 1);
     }
 
     nav{

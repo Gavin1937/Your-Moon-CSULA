@@ -9,15 +9,22 @@
    * Else
      * server will looking for file `dev.config.json`
    * This tutorial will use `dev.config.json` as example
-2. add following configuration in it
+2. you can tell the server to use either **AWS S3** or **file system** as storage method by setting the environment variable `STORAGE_METHOD`
+   * If environment variable `STORAGE_METHOD` is set to `s3`
+     * server will use **AWS S3** as multer storage method
+   * Otherwise
+     * server will save images in **file system**
+3. add following configuration in it
 
 ```jsonc
 {
     "app_host": "localhost",
     "app_port": 3001,
     "max_upload_size": 31457280, // 30MB
+    "upload_job_expire": 300,
     "log_file": "/path/to/your-moon-server.log",
     "log_level": "debug",
+    "session_key": "Base64_random_bytes_for_express_session_secret",
     "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
     "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
     "cors_origin_whitelist": [
@@ -49,7 +56,7 @@
 }
 ```
 
-* Note that both `aes_key` and `jwt_secret` are saved as base64 encoded strings. To create them, you can run following python script in any python 3.x environment. (I suggest [this website](https://www.programiz.com/python-programming/online-compiler/) for anyone who don't want to install python)
+* Note that both `aes_key`, `jwt_secret`, and `session_key` are saved as base64 encoded strings. To create them, you can run following python script in any python 3.x environment. (I suggest [this website](https://www.programiz.com/python-programming/online-compiler/) for anyone who don't want to install python)
 
 ```py
 from random import randbytes
@@ -57,9 +64,11 @@ from base64 import b64encode
 print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8'))
 ```
 
+* Also Note that `aes_key` is the key used for encrypt email, if you lost it, you cannot decrypt emails in the database anymore.
+
 * Note that `cors_origin_whitelist` is a list of urls to the the frontend, they are whitelist for cors cross origin protection. This is because we need to send credentials (cookie) from the frontend to backend.
 
-3. you can use `.template` files under `src/server/config/` as your starting point
+4. you can use `.template` files under `src/server/config/` as your starting point
 
 
 ## Deploy

@@ -39,20 +39,20 @@ const router = createRouter({
 })
 
 
-router.beforeEach(async (to, from, next) => {
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    const authenticated = await isAuthenticated();
-    if (!authenticated) {
-      next({
-        path: '/',
-        query: { redirect: to.fullPath }
-      });
-    } else {
-      next();
-    }
-  } else {
-    next(); 
-  }
-});
+// router.beforeEach(async (to, from, next) => {
+//   if (to.matched.some(record => record.meta.requiresAuth)) {
+//     const authenticated = await isAuthenticated();
+//     if (!authenticated) {
+//       next({
+//         path: '/',
+//         query: { redirect: to.fullPath }
+//       });
+//     } else {
+//       next();
+//     }
+//   } else {
+//     next(); 
+//   }
+// });
 export default router
 

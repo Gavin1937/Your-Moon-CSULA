@@ -10,7 +10,7 @@ import MoonRegistration from "../moon-registration";
 import config from "../../config/config.json";
 import { nearestCity } from 'cityjs';
 import dataArray from "./arrays.js";
-import SearchAutocomplete from "../components/SearchAutocomplete.vue";
+import SearchAutocomplete from "../components/SearchAutoComplete.vue";
 // This is the ref to the cropper DOM element
 const cropr = ref(null);
 

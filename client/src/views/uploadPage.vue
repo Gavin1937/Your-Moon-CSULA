@@ -36,8 +36,8 @@ let data = reactive({
   // Tracks time input if there isn't meta data
   time: '',
   iframe:{
-		src: ""
-	},
+    src: ""
+  },
   file: null,
   fileType: '',
   imageDataUrl: null,
@@ -48,91 +48,91 @@ let data = reactive({
 })
 
 //function when user clicks no -that location on OpenStreetMaps is wrong
-function closeMapAndResetLatLonFields(){
-	data.mapReady = false;
-	data.latitude = '';
-	data.longitude = '';
+function closeMapAndResetLatLonFields() {
+  data.mapReady = false;
+  data.latitude = '';
+  data.longitude = '';
 }
 
 //lat range -90 - 90, lon -180 - 180, would cause error on OpenStreetMaps if not valid lat and lon
-function validateCoords(){
-	if(data.latitude >= -90 && data.latitude <= 90){
-		if(data.longitude >= -180 && data.longitude <= 180){
-			data.message = ""
-			showCoordsOnMap()
-		}
-	}else{
-		data.invalidCoords = true;
-		data.message = "Invalid coordinates";
-		data.latitude = "";
-		data.longitude = "";
-	}
-	
+function validateCoords() {
+  if (data.latitude >= -90 && data.latitude <= 90) {
+    if (data.longitude >= -180 && data.longitude <= 180) {
+      data.message = ""
+      showCoordsOnMap()
+    }
+  } else {
+    data.invalidCoords = true;
+    data.message = "Invalid coordinates";
+    data.latitude = "";
+    data.longitude = "";
+  }
 }
 
-function showCoordsOnMap(){
-	const city = nearestCity({latitude: data.latitude, longitude: data.longitude});
-	const qParam = city.name.replace(" ", "+");
-  
+function showCoordsOnMap() {
+  const city = nearestCity({
+    latitude: data.latitude,
+    longitude: data.longitude,
+  });
+  const qParam = city.name.replace(" ", "+");
+
   // lat, lon, zoom to OSM bounding box
   // https://stackoverflow.com/a/17811173
-  function rad2deg(radians)
-  {
+  function rad2deg(radians) {
     var pi = Math.PI;
-    return radians * (180/pi);
+    return radians * (180 / pi);
   }
-  function deg2rad(degrees)
-  {
+  function deg2rad(degrees) {
     var pi = Math.PI;
-    return degrees * (pi/180);
+    return degrees * (pi / 180);
   }
   // trigonometry sec function
   function sec(val) {
-    return 1/Math.cos(val);
+    return 1 / Math.cos(val);
   }
-  
+
   function getTileNumber(lat, lon, zoom) {
     let xtile = Number.parseInt( (lon+180)/360 * 2**zoom ) ;
     let ytile = Number.parseInt( (1 - Math.log(Math.tan(deg2rad(lat)) + sec(deg2rad(lat)))/Math.PI)/2 * 2**zoom ) ;
     return [xtile, ytile];
   }
-  
+
   function getLonLat(xtile, ytile, zoom) {
     let n = 2 ** zoom;
     let lon_deg = xtile / n * 360.0 - 180.0;
     let lat_deg = rad2deg(Math.atan(Math.sinh(Math.PI * (1 - 2 * ytile / n))));
     return [lon_deg, lat_deg];
   }
-  
+
   // convert from permalink OSM format like:
   // http://www.openstreetmap.org/?lat=43.731049999999996&lon=15.79375&zoom=13&layers=M
   // to OSM "Export" iframe embedded bbox format like:
   // http://www.openstreetmap.org/export/embed.html?bbox=15.7444,43.708,15.8431,43.7541&layer=mapnik
-  
+
   function LonLat_to_bbox(lat, lon, zoom) {
     let width = 425;
     let height = 350; // note: must modify this to match your embed map width/height in pixels
     let tile_size = 256;
-    
-    let [xtile, ytile] = getTileNumber (lat, lon, zoom);
-    
-    let xtile_s = (xtile * tile_size - width/2) / tile_size;
-    let ytile_s = (ytile * tile_size - height/2) / tile_size;
-    let xtile_e = (xtile * tile_size + width/2) / tile_size;
-    let ytile_e = (ytile * tile_size + height/2) / tile_size;
-    
-    let [lon_s,lat_s] = getLonLat(xtile_s, ytile_s, zoom);
-    let [lon_e,lat_e] = getLonLat(xtile_e, ytile_e, zoom);
-    
-    let bbox = [lon_s,lat_s,lon_e,lat_e];
+
+    let [xtile, ytile] = getTileNumber(lat, lon, zoom);
+
+    let xtile_s = (xtile * tile_size - width / 2) / tile_size;
+    let ytile_s = (ytile * tile_size - height / 2) / tile_size;
+    let xtile_e = (xtile * tile_size + width / 2) / tile_size;
+    let ytile_e = (ytile * tile_size + height / 2) / tile_size;
+
+    let [lon_s, lat_s] = getLonLat(xtile_s, ytile_s, zoom);
+    let [lon_e, lat_e] = getLonLat(xtile_e, ytile_e, zoom);
+
+    let bbox = [lon_s, lat_s, lon_e, lat_e];
     return bbox;
   }
-  
-  let bbox = LonLat_to_bbox(city.latitude,city.longitude,9.5);
+
+  let bbox = LonLat_to_bbox(city.latitude, city.longitude, 9.5);
   let bbox_str = `${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]},`
-  
+
   data.iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox_str}&layer=mapnik&marker=${city.latitude},${city.longitude}`
-	data.mapReady = true;
+  data.mapReady = true;
 }
 
 function getScaledCropData() {
@@ -190,13 +190,16 @@ function checkFileType(file) {
       // References:
       // https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
       // https://en.wikipedia.org/wiki/List_of_file_signatures
-      if (dataview.getUint16(0,false) == 0x424d) {
+      if (dataview.getUint16(0, false) == 0x424d) {
         fileType = "bmp";
-      } else if (dataview.getUint32(0,true) & 0x00ffd8ff > 0) {
+      } else if (dataview.getUint32(0, true) & (0x00ffd8ff > 0)) {
         fileType = "jpg";
-      } else if (dataview.getUint32(0,true) & 0x00474e50 > 0) {
+      } else if (dataview.getUint32(0, true) & (0x00474e50 > 0)) {
         fileType = "png";
-      } else if (dataview.getUint32(0,false) == 0x52494646 && dataview.getUint32(8,false) == 0x57454250) {
+      } else if (
+        dataview.getUint32(0, false) == 0x52494646 &&
+        dataview.getUint32(8, false) == 0x57454250
+      ) {
         fileType = "webp";
       } else {
         fileType = "invalid";
@@ -205,7 +208,10 @@ function checkFileType(file) {
 
       data.fileType = fileType;
       data.isValidFileType = fileType !== "invalid" ? true : false;
-      resolve({ fileType: data.fileType, isValidFileType: data.isValidFileType });
+      resolve({
+        fileType: data.fileType,
+        isValidFileType: data.isValidFileType,
+      });
     };
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);
@@ -235,9 +241,13 @@ async function onFileChange(e) {
             // DataUrl looks like:
             // data:<MIME-TYPE>;base64,<BASE-64 DATA>
             // we need to extract only the <BASE-64 DATA> part
-            let b64content = e.target.result.substr(e.target.result.indexOf(';base64,')+8)
-            data.imageHash = CryptoJS.MD5(CryptoJS.enc.Base64.parse(b64content)).toString();
-            console.log(data.imageHash)
+            let b64content = e.target.result.substr(
+              e.target.result.indexOf(";base64,") + 8
+            );
+            data.imageHash = CryptoJS.MD5(
+              CryptoJS.enc.Base64.parse(b64content)
+            ).toString();
+            console.log(data.imageHash);
           };
           reader.readAsDataURL(data.file);
           RunDetectMoon(data.file);
@@ -322,7 +332,11 @@ async function RunDetectMoon(_fileObject, _type = "square") {
   }
 }
 async function onMoonPositionUpdate(new_position_circle, new_position) {
-  data.moon_position_circle = { x: new_position_circle.x, y: new_position_circle.y, radius: new_position_circle.radius };
+  data.moon_position_circle = {
+    x: new_position_circle.x,
+    y: new_position_circle.y,
+    radius: new_position_circle.radius,
+  };
   if (new_position.type == "square") {
     data.moon_position = { x: new_position.x, y: new_position.y, width: new_position.width }
     console.log('moon_position:',data.moon_position)
@@ -419,6 +433,8 @@ async function uploadCroppedImage() {
           :zoomOnTouch="false"
           :movable="false"
           :viewMode="3"
+          :dragMode="'move'"
+          :toggleDragModeOnDblclick="false"
           :restore="false"
           :responsive="false"
           :aspectRatio="1"
@@ -427,21 +443,25 @@ async function uploadCroppedImage() {
           @ready="onCropperReady"
         />
       </div>
-      <div class="status-message" v-if="fileSizeExceeded || !isValidFileType || invalidCoords">
+      <!-- <div class="status-message" v-if="fileSizeExceeded || !isValidFileType || invalidCoords"> 
         {{ data.message }}
+      </div> 
+  -->
+      <div v-if="data.mapReady">
+        <iframe
+          width="0"
+          height="0"
+          frameborder="0"
+          style="border: 0"
+          referrerpolicy="no-referrer-when-downgrade"
+          :src="data.iframe.src"
+          allowfullscreen
+        >
+        </iframe>
+        <p>Can you confirm location from where Moon shot was taken?</p>
+        <button @click="closeMapAndResetLatLonFields">No</button>
+        <button @click="uploadCroppedImage">Yes</button>
       </div>
-	  <div v-if="data.mapReady">
-    <iframe width="450" height="250"
-      frameborder="0" style="border:0"
-      referrerpolicy="no-referrer-when-downgrade"
-      :src="data.iframe.src"
-      allowfullscreen
-    >
-    </iframe>
-		<p>Can you confirm location from where Moon shot was taken?</p>
-		<button @click="closeMapAndResetLatLonFields">No</button>
-		<button @click="uploadCroppedImage">Yes</button>
-	  </div>
       <div v-if="data.croppedImage">
         <div class="cent">
           <div id="image-upload">
@@ -470,9 +490,9 @@ async function uploadCroppedImage() {
                           class="input"
                           type="number"
                           v-model="data.latitude"
-						  min="-90"
-						  max="90"
-						  required
+                          min="-90"
+                          max="90"
+                          required
                         />
                       </div>
                     </div>
@@ -485,9 +505,9 @@ async function uploadCroppedImage() {
                           class="input"
                           type="number"
                           v-model="data.longitude"
-						  min="-180"
-						  max="180"
-						  required
+                          min="-180"
+                          max="180"
+                          required
                         />
                       </div>
                     </div>
@@ -500,7 +520,7 @@ async function uploadCroppedImage() {
                           class="input"
                           type="number"
                           v-model="data.altitude"
-						  required
+                          required
                         />
                       </div>
                     </div>
@@ -512,7 +532,12 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Date </label>
                       <div class="control">
-                        <input class="input" type="date" v-model="data.date" required/>
+                        <input
+                          class="input"
+                          type="date"
+                          v-model="data.date"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
@@ -520,7 +545,12 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Time </label>
                       <div class="control">
-                        <input class="input" type="time" v-model="data.time" required />
+                        <input
+                          class="input"
+                          type="time"
+                          v-model="data.time"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
@@ -528,7 +558,12 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Instrument Make </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.make" required />
+                        <input
+                          class="input"
+                          type="text"
+                          v-model="data.make"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
@@ -536,7 +571,12 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Instrument Model </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.model" required />
+                        <input
+                          class="input"
+                          type="text"
+                          v-model="data.model"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
@@ -548,9 +588,9 @@ async function uploadCroppedImage() {
 							</button> -->
               </div>
             </form>
-            <p class="status-message">
+            <!-- <p class="status-message">
               {{ data.message }}
-            </p>
+            </p> -->
           </div>
           <div v-if="data.croppedImage">
             <button
@@ -560,6 +600,18 @@ async function uploadCroppedImage() {
             >
               Upload
             </button>
+
+            
+              <div
+                class="status-message"
+                v-if="fileSizeExceeded || !isValidFileType || invalidCoords"
+              >
+                {{ data.message }}
+                <p class="status-message">
+                  {{ data.message }}
+                </p>
+              
+            </div>
           </div>
         </div>
       </div>
@@ -569,16 +621,16 @@ async function uploadCroppedImage() {
 
 <!-- eslint-disable prettier/prettier -->
 <style>
-  .content-block {
-    font-family: monospace;
-    max-width: 100rem;
-    background-color: #3C3C3C; 
-    padding: 30px;
-    margin-top: 20px;
-    border: 2px solid #E6E6E6; 
-    margin-left: auto;
-    margin-right: auto;
-  }
+.content-block {
+  font-family: monospace;
+  max-width: 100rem;
+  background-color: #3C3C3C;
+  padding: 30px;
+  margin-top: 20px;
+  border: 2px solid #E6E6E6;
+  margin-left: auto;
+  margin-right: auto;
+}
 
 .move {
   margin-left: 5px;
@@ -676,8 +728,6 @@ async function uploadCroppedImage() {
   padding-left: 2.5%;
   padding-top: 1%;
 }
-
-
 
 #image-upload,
 .status-message {

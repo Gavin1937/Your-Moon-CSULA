@@ -1,146 +1,135 @@
-
 <script setup>
 import config from "../../config/config.json";
-let data = {
-    imageSrc: "src/assets/YourMoon.png"
-}
+
+
 async function google() {
-    window.open(config.backend_url+"/api/auth/google", "_self")
+    window.open(config.backend_url + "/api/auth/google", "_self");
 }
 
 async function github() {
-    window.open(config.backend_url+"/api/auth/github", "_self")
+    window.open(config.backend_url + "/api/auth/github", "_self");
 }
 </script>
+
 <template>
-    <div id="landing-page">
-      <div class="header">
-        <h1>Welcome to Your Moon!</h1>
-        <p>A student led data collection project for the development of Moon Trek AR.</p>
+  <main class="main">
+    <div class="columns">
+      <div class="column is-two-thirds-desktop is-6-tablet has-text-white custom-box">
+        <h1 class="mt-4">Welcome</h1>
+        <p>
+          Welcome to YourMoon, a web application inviting users to submit images of their Moon. Explore your lunar captures with labels from NASA JPL's MoonTrek, aiding the 'MoonTrek AR' team in gathering data.
+        </p>
+        <h1>What is YourMoon?</h1>
+        <p>
+          YourMoon is a vital component of an ongoing Capstone Senior Design project, a collaborative effort between NASA's JPL and California State University, Los Angeles (CSULA). The primary objective is to create a user-friendly interface for <a href='https://yourlinktomoontrek.com'>Moon Trek</a>, a powerful NASA tool empowering users to delve into the mysteries of the lunar by offering user-friendly tools that simplify browsing, data layering, and detailed feature searches. YourMoon invites users to contribute their Moon images and utilize NASA JPL's MoonTrek data, aiding the 'MoonTrek AR' team in their data collection endeavors. The metadata provided by users is kept anonymous and used strictly for research purposes.
+          <img src="../assets/moon_overlay.png" alt="moon" class="moon_img">
+        </p> 
       </div>
-      <div class="content-block">
-        <h2>About Your Moon</h2>
-        <p>Your Moon is a website that is developed and run by Cal State LA students that is open to the public in collaboration with the Jet Propulsion Laboratory (JPL). CSULA students are currently working on an AR application that will display overlays provided by NASA’s MoonTrek website images taken by telescope users. Just like this!</p>
-        <img v-if="data.imageSrc" :src="data.imageSrc" alt="Moon Trek AR Example" />
-        <p>
-            To learn more about MoonTrek, visit:
-            <a href="https://trek.nasa.gov/moon/">Moon Trek</a>
-        <br>
-        In order to develop this application so that it works for everyone’s Moon we need images of the Moon taken from telescopes from around the world. We are building this site in order to gather images from a wide range of locations and times in order to test and develop different models that students here at Cal State LA are creating.
-        </p>
-        <p>
-        (To ensure the universal functionality of this application, the acquisition of lunar images captured by telescopes worldwide is paramount. Our objective in constructing this platform is to assemble a diverse collection of lunar imagery from various geographic locations and timeframes. This invaluable dataset serves as a foundational resource for rigorous testing and refinement of multiple models, which are being developed by students at Cal State LA. Through this collaborative effort, we aim to offer an application that caters to the lunar exploration needs of individuals worldwide)
-        </p>
-        <p>
-        Your Moon collectively obtains user images of the Moon, allowing students to gather images that have meta data. Images uploaded by citizen scientists will be stored, in addition to metadata extracted from them. Metadata will then be used to show users their location as well as their latitude and longitude while also providing further information. Extracting metadata will also allow students to use it for 2023-2024 senior design MoonTrek. Your Moon is the foundation of MoonTrek AR. 
-        </p>
-        <p>
-        Don’t fret, all of your data is anonymized and your image cannot be traced back to you!
-        </p>
-        <p>
-        Given the nature of the project we ask that you please verify yourself with a google account before uploading.
-            
 
-        </p>
-        <div class="login-container">
-        <button class="google-btn" @click="google">
-            <img src="@/assets/google_logo.svg" alt="Google Logo" class="google-logo">
-            Sign in with Google
-        </button>
-        </div>
-    <div class="credit-section">
-      <p>GIF courtesy of <a href="https://www.newgrounds.com/art/view/gold356/the-moon-in-pixel-art-32x32">gold356</a></p>
-    </div>
+      <div class="column is-one-third-desktop is-6-tablet has-text-white custom-box">
+        <article class="message">
+          <div class="message-header">
+            <p class="message-title has-text-white">UPLOAD YOUR MOON IMAGES</p>
+          </div>
+          <div class="message-body has-text-white">
+            <p>
+              For enhanced security measures, we kindly ask you to log in using your 
+              preferred email address. This ensures a secure interaction for both you 
+              and our system. Thank you.
+              <br /><br />
+              <div style="text-align: center;">
+                <button class="button is-warning is-rounded" @click="google">Sign in</button>
+              </div>
+            </p>
+          </div>
+        </article>
+        <article class="message">
+          <div class="message-header">
+            <p class="message-title has-text-white">MoonTrek AR</p>
+          </div>
+          <div class="message-body has-text-white">
+            <p>
+              MoonTrek AR, an innovative project, aims to advance lunar education and exploration using augmented reality (AR). 
+              It generates precise 3D models, allowing users to immerse themselves in the Moon's surface at the time of their photos.
+              By integrating NASA's Moon Trek data, it offers overlays from missions and telescopes. Explore past and current lunar missions, 
+              historic landmarks, and craters in an interactive portal. To learn more, visit
+              <a href="https://ascent.cysun.org/project/project/view/208">
+                <button class="button is-warning is-rounded">MoonTrek AR</button>
+              </a>
+            </p>
+          </div>
+        </article>
       </div>
     </div>
-  </template>
-  
-  
-  <style scoped>
-  #landing-page {
-    font-family: 'Arial', sans-serif;
-    background-color: black; 
-    color: #E6E6E6; 
-    padding: 20px;
-  }
-  
-  .header {
-    background-color: #4A4A4A;
-    max-width: 100rem; 
-    padding: 20px;
-    text-align: center;
-    margin-left: auto;
-    margin-right: auto;
-  }
+  </main>
+</template>
 
-  
-  .content-block {
-    font-family: monospace;
-    max-width: 100rem;
-    background-color: #3C3C3C; 
-    padding: 30px;
-    margin-top: 20px;
-    border: 2px solid #E6E6E6; 
-    margin-left: auto;
-    margin-right: auto;
-  }
-  
-  h1, h2 {
-    color: #00bd7e; 
-  }
-  
-  p {
-    font-size: 16px;
-    margin-top: 20px;
-  }
-  
-  img {
-    max-width: 100%;
-    height: auto;
-    margin-top: 20px;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .login-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height:100;
-    }
-    .google-btn {
-        display: flex;
-        align-items: center;
-        padding: 10px 20px;
-        border: none;
-        background-color: #4285F4;
-        color: white;
-        font-family: Arial, sans-serif;
-        cursor: pointer;
-        border-radius: 4px;
-        transition: background-color 0.2s;
-        height: 75px;
-        width: 200;
-    }
-    .google-btn:hover {
-        background-color: #357ABD;
-    }
-    .google-logo {
-        width: 24px;
-        height: 24px;
-        margin-right: 10px;
-        margin-top:auto;
-        margin-bottom:auto;
-    }
-    .credit-section {
-        margin-top: 30px;
-        font-size: 12px;
-        text-align: center;
-    }
+<style>
+.main {
+  padding: 20px;
+  padding-left: 75px;
+  padding-right: 75px;
+  background-image: url("../assets/galaxy_01.png");
+}
 
-    .credit-section a {
-        color: #FFD700;
-        text-decoration: none;
-    }
-        
-  </style>
+.custom-box {
+  padding-top: 1px;
+  padding-bottom: 10px;
+  padding-left: 20px;
+  margin-bottom: 20px;
+  background-color: #050608;
+  border: 2px solid #3a3a3a;
+  border-radius: 5px;
+}
+
+.moon_img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 1.5rem;
+  margin-right: auto;
+}
+
+.button {
+  margin-left: auto;
+  margin-right: auto;
+  background-color: #645394;
+  color: #ffffff;
+}
+
+.columns {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.column {
+  flex: 1 0 100%;
+}
+
+@media (min-width: 769px) {
+  .column {
+    flex: 1 0 50%;
+  }
+}
+
+.message {
+  padding-top: 20px;
+  padding-left: 10px;
+  padding-right: 10px;
+  background-color: rgba(2, 4, 3, 0.7);
+  margin-bottom: 2px;
+  color: #ffffff;
+}
+
+.message-header {
+  background-color: #232022;
+  font-size: 1.25rem;
+  font-weight: bold;
+  font-family: 'Roboto', monospace;
+
+}
+
+.message-body {
+  background-color: #101026;
+}
+</style>

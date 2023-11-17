@@ -9,7 +9,8 @@ import { ref, reactive } from "vue";
 import MoonRegistration from "../moon-registration";
 import config from "../../config/config.json";
 import { nearestCity } from 'cityjs';
-
+import dataArray from "./arrays.js";
+import SearchAutocomplete from "../components/SearchAutoComplete.vue";
 // This is the ref to the cropper DOM element
 const cropr = ref(null);
 
@@ -19,15 +20,20 @@ let data = reactive({
   // Message for displaying success or failure when uploading
   message: "",
   // Tracks if image has meta data
-  hasExif: true,
+  hasExifCoords: false,
+  //hasCoords: null, //if false user will input nearest city to where Moon shot was taken
   maxFileSize: 30 * 1024 * 1024, //max file size 30MB
   fileSizeExceeded: false,
   isValidFileType: false,
   latitude: '',
   longitude: '',
+  nearestCity: '',
+  countryCode: '',
   inValidCoords: null,
   altitude: '',
   timeStamp: '',
+  isOpen: false, //is autocomplete suggestions open
+  suggestions: null, //suggestions for autocomplete
   // Data retrieved from RunMoonDetect()
   moon_position: null,
   moon_position_circle: null,
@@ -172,6 +178,8 @@ async function onCropperReady() {
   }
 }
 
+
+
 //checks bytes of file header to check file type because human readable MIME type can be manipulated
 function checkFileType(file) {
   return new Promise((resolve, reject) => {
@@ -234,6 +242,7 @@ async function onFileChange(e) {
           data.showCropper = false;
           const reader = new FileReader();
           updateMetaData();
+      
           reader.onload = (e) => {
             data.imageDataUrl = e.target.result;
             data.showCropper = true;
@@ -265,18 +274,21 @@ async function onFileChange(e) {
 async function updateMetaData() {
   try {
     const tags = await ExifReader.load(data.file);
-
+    
     // If so, keep imageData.hasExif true
-    data.hasExif = true;
-    // Set the date
+    // data.hasExif = true;
+    // // Set the date
     if (tags.GPSLongitude && tags.GPSLatitude) {
+      data.hasExifCoords = true;
       // Keep all North latitude values positive
       // and make South latitude values negative
+      
       if (tags.GPSLatitudeRef.value[0] === 'N') {
         data.latitude = tags.GPSLatitude.description;
       } else {
         data.latitude = -1 * tags.GPSLatitude.description;
       }
+
 
       // Keep all East longitude values positive
       // and make West longitude values negative
@@ -285,6 +297,16 @@ async function updateMetaData() {
       } else {
         data.longitude = -1 * tags.GPSLongitude.description;
       }
+
+      //populate country code and nearest city fields
+      const city = nearestCity({latitude: data.latitude, longitude: data.longitude});
+      console.log(city);
+      data.nearestCity = city.name;
+      data.countryCode = city.countryCode;
+
+    
+  
+
     }
     if (tags.GPSAltitude) {
       //.slice removes last 2 characters (blank space and m)
@@ -309,7 +331,9 @@ async function updateMetaData() {
     }
   } catch (error) {
     console.log(error);
-  }
+  } 
+    
+  
 }
 // wrapper function to run moon detection algorithm
 // parameters:
@@ -345,6 +369,8 @@ async function onMoonPositionUpdate(new_position_circle, new_position) {
 // function that gets the cropped image and sends it to server-side
 async function uploadCroppedImage() {
   try {
+    //update lat and lon to nearest city
+    updateCoordinates(data.nearestCity, data.countryCode);
     // make post request to upload image to database
     let img_filename = `${data.imageHash}.${data.file.type.split('/')[1]}`;
     let metadata_params = {
@@ -481,7 +507,10 @@ async function uploadCroppedImage() {
 
               <!-- this portion only shows up if the image has no EXIF data attached to it : v-if="!hasExif"-->
               <div id="manual-form" class="move">
-                <div class="columns is-centered">
+               <div class="columns is-centered">
+                  
+                <div>
+                  
                   <div class="column is-one-fifth">
                     <div class="field">
                       <label class="label"> Latitude </label>
@@ -596,7 +625,7 @@ async function uploadCroppedImage() {
             <button
               type="button"
               class="btn btn-primary"
-              @click="validateCoords"
+              @click="uploadCroppedImage"
             >
               Upload
             </button>
@@ -632,6 +661,39 @@ async function uploadCroppedImage() {
   margin-right: auto;
 }
 
+/* added */
+.autocomplete{
+  position: relative;
+}
+
+.autocomplete-results {
+  padding: 0;
+  margin: 0;
+  border: 1px solid #eeeeee;
+  height: 120px;
+  min-height: 1em;
+  max-height: 6em;    
+  overflow: auto;
+}
+
+.autocomplete-result {
+  list-style: none;
+    text-align: left;
+    padding: 4px 2px;
+    cursor: pointer;
+}
+.autocomplete-result:hover {
+  /*when hovering an item:*/
+  background-color: #4AAE9B;
+  color: white;
+}
+.autocomplete-active {
+  /*when navigating through the items using the arrow keys:*/
+  background-color: DodgerBlue !important;
+  color: #ffffff;
+}
+
+/* end */
 .move {
   margin-left: 5px;
 }

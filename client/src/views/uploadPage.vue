@@ -538,11 +538,11 @@ async function uploadCroppedImage() {
                 <div class="file is-centered">
                   <label class="file-label">
                     <!-- <input class="file-input" type="file" ref="lunarImage" @change="onSelect" /> add back to code-->
-                    <span class="file-cta">
+                    <!-- <span class="file-cta">
                       <span class="file-icon">
                         <font-awesome-icon icon="fa-solid fa-file-arrow-up" />
                       </span>
-                    </span>
+                    </span> -->
                   </label>
                 </div>
               </div>
@@ -553,15 +553,15 @@ async function uploadCroppedImage() {
                   
                 <div>
                   
-                  <div class="column is-one-fifth">
+                  <div class="column">
                     <SearchAutocomplete :items="dataArray" propertyToFilterBy="countryCode" :searchInitialValue="data.countryCode" @update:search="updateCountryCode"/>
                     
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column">
                     <SearchAutocomplete :items="dataArray" propertyToFilterBy="city" :searchInitialValue="data.nearestCity" @update:search="updateCity"/>
                   </div>
                 </div>
-                  <div class="column is-one-fifth">
+                  <div class="column is-narrow ">
                     <div class="field">
                       <label class="label"> Altitude </label>
                       <div class="control">
@@ -577,7 +577,7 @@ async function uploadCroppedImage() {
                 </div>
 
                 <div class="columns is-centered">
-                  <div class="column is-one-fifth">
+                  <div class="column is-half">
                     <div class="field">
                       <label class="label"> Date </label>
                       <div class="control">
@@ -590,7 +590,7 @@ async function uploadCroppedImage() {
                       </div>
                     </div>
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column is-half">
                     <div class="field">
                       <label class="label"> Time </label>
                       <div class="control">
@@ -603,7 +603,7 @@ async function uploadCroppedImage() {
                       </div>
                     </div>
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column ">
                     <div class="field">
                       <label class="label"> Instrument Make </label>
                       <div class="control">
@@ -616,7 +616,7 @@ async function uploadCroppedImage() {
                       </div>
                     </div>
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column ">
                     <div class="field">
                       <label class="label"> Instrument Model </label>
                       <div class="control">
@@ -715,7 +715,7 @@ async function uploadCroppedImage() {
 
 /* end */
 .move {
-  margin-left: 5px;
+  margin-left:5px;
 }
 
 .resize {
@@ -741,7 +741,7 @@ async function uploadCroppedImage() {
   padding-top: 2%;
 }
 
-.container {
+.primary-container {
   display: flex;
   max-width: 800px;
   margin: 0 auto;

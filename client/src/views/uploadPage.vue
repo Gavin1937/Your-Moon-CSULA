@@ -54,92 +54,101 @@ let data = reactive({
 })
 
 //function when user clicks no -that location on OpenStreetMaps is wrong
-function closeMapAndResetLatLonFields() {
-  data.mapReady = false;
-  data.latitude = '';
-  data.longitude = '';
+// function closeMapAndResetLatLonFields(){
+// 	data.mapReady = false;
+// 	data.latitude = '';
+// 	data.longitude = '';
+// }
+
+
+function updateCity(params){
+  data.nearestCity = params
 }
 
 //lat range -90 - 90, lon -180 - 180, would cause error on OpenStreetMaps if not valid lat and lon
-function validateCoords() {
-  if (data.latitude >= -90 && data.latitude <= 90) {
-    if (data.longitude >= -180 && data.longitude <= 180) {
-      data.message = ""
-      showCoordsOnMap()
-    }
-  } else {
-    data.invalidCoords = true;
-    data.message = "Invalid coordinates";
-    data.latitude = "";
-    data.longitude = "";
-  }
-}
+// function validateCoords(){
+// 	if(data.latitude >= -90 && data.latitude <= 90){
+// 		if(data.longitude >= -180 && data.longitude <= 180){
+// 			data.message = ""
+// 			// showCoordsOnMap()
+// 		}
+// 	}else{
+// 		data.invalidCoords = true;
+// 		data.message = "Invalid coordinates";
+// 		data.latitude = "";
+// 		data.longitude = "";
+// 	}	
+// }
 
-function showCoordsOnMap() {
-  const city = nearestCity({
-    latitude: data.latitude,
-    longitude: data.longitude,
-  });
-  const qParam = city.name.replace(" ", "+");
 
-  // lat, lon, zoom to OSM bounding box
-  // https://stackoverflow.com/a/17811173
-  function rad2deg(radians) {
-    var pi = Math.PI;
-    return radians * (180 / pi);
-  }
-  function deg2rad(degrees) {
-    var pi = Math.PI;
-    return degrees * (pi / 180);
-  }
-  // trigonometry sec function
-  function sec(val) {
-    return 1 / Math.cos(val);
-  }
-
-  function getTileNumber(lat, lon, zoom) {
-    let xtile = Number.parseInt( (lon+180)/360 * 2**zoom ) ;
-    let ytile = Number.parseInt( (1 - Math.log(Math.tan(deg2rad(lat)) + sec(deg2rad(lat)))/Math.PI)/2 * 2**zoom ) ;
-    return [xtile, ytile];
-  }
-
-  function getLonLat(xtile, ytile, zoom) {
-    let n = 2 ** zoom;
-    let lon_deg = xtile / n * 360.0 - 180.0;
-    let lat_deg = rad2deg(Math.atan(Math.sinh(Math.PI * (1 - 2 * ytile / n))));
-    return [lon_deg, lat_deg];
-  }
-
-  // convert from permalink OSM format like:
-  // http://www.openstreetmap.org/?lat=43.731049999999996&lon=15.79375&zoom=13&layers=M
-  // to OSM "Export" iframe embedded bbox format like:
-  // http://www.openstreetmap.org/export/embed.html?bbox=15.7444,43.708,15.8431,43.7541&layer=mapnik
-
-  function LonLat_to_bbox(lat, lon, zoom) {
-    let width = 425;
-    let height = 350; // note: must modify this to match your embed map width/height in pixels
-    let tile_size = 256;
-
-    let [xtile, ytile] = getTileNumber(lat, lon, zoom);
-
-    let xtile_s = (xtile * tile_size - width / 2) / tile_size;
-    let ytile_s = (ytile * tile_size - height / 2) / tile_size;
-    let xtile_e = (xtile * tile_size + width / 2) / tile_size;
-    let ytile_e = (ytile * tile_size + height / 2) / tile_size;
-
-    let [lon_s, lat_s] = getLonLat(xtile_s, ytile_s, zoom);
-    let [lon_e, lat_e] = getLonLat(xtile_e, ytile_e, zoom);
-
-    let bbox = [lon_s, lat_s, lon_e, lat_e];
-    return bbox;
-  }
-
-  let bbox = LonLat_to_bbox(city.latitude, city.longitude, 9.5);
-  let bbox_str = `${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]},`
-
-  data.iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox_str}&layer=mapnik&marker=${city.latitude},${city.longitude}`
-  data.mapReady = true;
-}
+// function showCoordsOnMap(){
+// 	const city = nearestCity({latitude: data.latitude, longitude: data.longitude});
+// 	const qParam = city.name.replace(" ", "+");
+//   console.log(city)
+//   const query = {latitude: data.latitude, longitude: data.longitude};
+//   const cities = nearbyCities(query);
+//   console.log(cities)
+  
+//   // lat, lon, zoom to OSM bounding box
+//   // https://stackoverflow.com/a/17811173
+//   function rad2deg(radians)
+//   {
+//     var pi = Math.PI;
+//     return radians * (180/pi);
+//   }
+//   function deg2rad(degrees)
+//   {
+//     var pi = Math.PI;
+//     return degrees * (pi/180);
+//   }
+//   // trigonometry sec function
+//   function sec(val) {
+//     return 1/Math.cos(val);
+//   }
+  
+//   function getTileNumber(lat, lon, zoom) {
+//     let xtile = Number.parseInt( (lon+180)/360 * 2**zoom ) ;
+//     let ytile = Number.parseInt( (1 - Math.log(Math.tan(deg2rad(lat)) + sec(deg2rad(lat)))/Math.PI)/2 * 2**zoom ) ;
+//     return [xtile, ytile];
+//   }
+  
+//   function getLonLat(xtile, ytile, zoom) {
+//     let n = 2 ** zoom;
+//     let lon_deg = xtile / n * 360.0 - 180.0;
+//     let lat_deg = rad2deg(Math.atan(Math.sinh(Math.PI * (1 - 2 * ytile / n))));
+//     return [lon_deg, lat_deg];
+//   }
+  
+//   // convert from permalink OSM format like:
+//   // http://www.openstreetmap.org/?lat=43.731049999999996&lon=15.79375&zoom=13&layers=M
+//   // to OSM "Export" iframe embedded bbox format like:
+//   // http://www.openstreetmap.org/export/embed.html?bbox=15.7444,43.708,15.8431,43.7541&layer=mapnik
+  
+//   function LonLat_to_bbox(lat, lon, zoom) {
+//     let width = 425;
+//     let height = 350; // note: must modify this to match your embed map width/height in pixels
+//     let tile_size = 256;
+    
+//     let [xtile, ytile] = getTileNumber (lat, lon, zoom);
+    
+//     let xtile_s = (xtile * tile_size - width/2) / tile_size;
+//     let ytile_s = (ytile * tile_size - height/2) / tile_size;
+//     let xtile_e = (xtile * tile_size + width/2) / tile_size;
+//     let ytile_e = (ytile * tile_size + height/2) / tile_size;
+    
+//     let [lon_s,lat_s] = getLonLat(xtile_s, ytile_s, zoom);
+//     let [lon_e,lat_e] = getLonLat(xtile_e, ytile_e, zoom);
+    
+//     let bbox = [lon_s,lat_s,lon_e,lat_e];
+//     return bbox;
+//   }
+  
+//   let bbox = LonLat_to_bbox(city.latitude,city.longitude,9.5);
+//   let bbox_str = `${bbox[0]},${bbox[1]},${bbox[2]},${bbox[3]},`
+  
+//   data.iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox_str}&layer=mapnik&marker=${city.latitude},${city.longitude}`
+// 	data.mapReady = true;
+// }
 
 function getScaledCropData() {
   // Gets cropBoxData and scales it up to the scale of the original image.
@@ -488,6 +497,18 @@ async function uploadCroppedImage() {
         <button @click="closeMapAndResetLatLonFields">No</button>
         <button @click="uploadCroppedImage">Yes</button>
       </div>
+	  <!-- <div v-if="data.mapReady">
+    <iframe width="450" height="250"
+      frameborder="0" style="border:0"
+      referrerpolicy="no-referrer-when-downgrade"
+      :src="data.iframe.src"
+      allowfullscreen
+    >
+    </iframe>
+		<p>Can you confirm location from where Moon shot was taken?</p>
+		<button @click="closeMapAndResetLatLonFields">No</button>
+		<button @click="uploadCroppedImage">Yes</button>
+	  </div> -->
       <div v-if="data.croppedImage">
         <div class="cent">
           <div id="image-upload">
@@ -496,11 +517,11 @@ async function uploadCroppedImage() {
                 <div class="file is-centered">
                   <label class="file-label">
                     <!-- <input class="file-input" type="file" ref="lunarImage" @change="onSelect" /> add back to code-->
-                    <span class="file-cta">
+                    <!-- <span class="file-cta">
                       <span class="file-icon">
                         <font-awesome-icon icon="fa-solid fa-file-arrow-up" />
                       </span>
-                    </span>
+                    </span> -->
                   </label>
                 </div>
               </div>
@@ -511,37 +532,15 @@ async function uploadCroppedImage() {
                   
                 <div>
                   
-                  <div class="column is-one-fifth">
-                    <div class="field">
-                      <label class="label"> Latitude </label>
-                      <div class="control">
-                        <input
-                          class="input"
-                          type="number"
-                          v-model="data.latitude"
-                          min="-90"
-                          max="90"
-                          required
-                        />
-                      </div>
-                    </div>
+                  <div class="column">
+                    <SearchAutocomplete :items="dataArray" propertyToFilterBy="countryCode" :searchInitialValue="data.countryCode" @update:search="updateCountryCode"/>
+                    
                   </div>
-                  <div class="column is-one-fifth">
-                    <div class="field">
-                      <label class="label"> Longitude </label>
-                      <div class="control">
-                        <input
-                          class="input"
-                          type="number"
-                          v-model="data.longitude"
-                          min="-180"
-                          max="180"
-                          required
-                        />
-                      </div>
-                    </div>
+                  <div class="column">
+                    <SearchAutocomplete :items="dataArray" propertyToFilterBy="city" :searchInitialValue="data.nearestCity" @update:search="updateCity"/>
                   </div>
-                  <div class="column is-one-fifth">
+                </div>
+                  <div class="column is-narrow ">
                     <div class="field">
                       <label class="label"> Altitude </label>
                       <div class="control">
@@ -557,7 +556,7 @@ async function uploadCroppedImage() {
                 </div>
 
                 <div class="columns is-centered">
-                  <div class="column is-one-fifth">
+                  <div class="column is-half">
                     <div class="field">
                       <label class="label"> Date </label>
                       <div class="control">
@@ -570,7 +569,7 @@ async function uploadCroppedImage() {
                       </div>
                     </div>
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column is-half">
                     <div class="field">
                       <label class="label"> Time </label>
                       <div class="control">
@@ -583,7 +582,7 @@ async function uploadCroppedImage() {
                       </div>
                     </div>
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column ">
                     <div class="field">
                       <label class="label"> Instrument Make </label>
                       <div class="control">
@@ -596,7 +595,7 @@ async function uploadCroppedImage() {
                       </div>
                     </div>
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column ">
                     <div class="field">
                       <label class="label"> Instrument Model </label>
                       <div class="control">
@@ -695,7 +694,7 @@ async function uploadCroppedImage() {
 
 /* end */
 .move {
-  margin-left: 5px;
+  margin-left:5px;
 }
 
 .resize {
@@ -721,7 +720,7 @@ async function uploadCroppedImage() {
   padding-top: 2%;
 }
 
-.container {
+.primary-container {
   display: flex;
   max-width: 800px;
   margin: 0 auto;

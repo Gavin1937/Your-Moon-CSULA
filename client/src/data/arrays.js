@@ -50140,12 +50140,11 @@ const dataString = `42.46372	1.49129	Sant Julià de Lòria	AD
 -18.01274	31.07555	Chitungwiza	ZW
 `;
 
-
-const dataArray = dataString.split('\n').map(line => {
-    const [lat, lon, ...rest] = line.split(/\s+/);
-    const countryCode = rest.pop();
-    const city = rest.join(' ');
-    return { lat, lon, city, countryCode };
+const citiesArray = dataString.split("\n").map((line) => {
+  const [lat, lon, ...rest] = line.split(/\s+/);
+  const countryCode = rest.pop();
+  const city = rest.join(" ");
+  return { lat, lon, city, countryCode };
 });
 
-export default dataArray;
+export default citiesArray;

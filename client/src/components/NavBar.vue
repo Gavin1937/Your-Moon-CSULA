@@ -1,61 +1,78 @@
-<!-- eslint-disable prettier/prettier -->
+<script setup>
+import { ref } from 'vue';
+import { RouterLink } from 'vue-router';
+
+const isBurgerActive = ref(false);
+
+const toggleBurger = () => {
+  isBurgerActive.value = !isBurgerActive.value;
+};
+</script>
+
 <template>
+  <header>
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <img src="../assets/yourmoon_circle.png" alt="logo" style="max-height: 80px"/>
+        <a class="navbar-item is-flex is-align-items-center">
+          <h1 class="your-text">Your</h1><h1 class="moon-text">Moon</h1>
+        </a>
+        <a @click="toggleBurger" class="navbar-burger is-size-6" :class="{ 'is-active': isBurgerActive }">
+          <span></span>
+          <span></span>
+          <span></span>
+        </a>
+      </div>
 
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-
-    <!-- <img src="../views/moonFace.gif" alt="moon face" style="width:35px; height:35px;"> -->
-    <img href="#" src="../assets/moon.gif" alt="moon" style="width:50px; height:50px">
-    <a class="navbar-brand" href="/"><span>Your</span>Moon</a>
-
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav">
-        
-        <li class="nav-item">
-          <a class="nav-link"><RouterLink to="/upload">Upload Images</RouterLink></a>
-        </li>
-        
-        <!-- <li class="nav-item">
-          <a class="nav-link"><RouterLink to="/about">About</RouterLink></a>
-        </li> -->
-      </ul>
-    </div>
-  </nav>
-  
+      <div :class="{ 'is-active': isBurgerActive }" class="navbar-menu is-size-5 has-text-centered" id="nav-links">
+        <div class="navbar-end">
+          <RouterLink class="navbar-item is-warning" to="/" @click="toggleBurger">Home</RouterLink>
+          <RouterLink class="navbar-item is-warning" to="/upload" @click="toggleBurger"> Upload</RouterLink>
+        </div>
+      </div>
+    </nav>
+  </header>
 </template>
 
-<!-- eslint-disable prettier/prettier -->
-<style scoped>
-    span{
-      color: hsla(160, 100%, 37%, 1);
-    }
-
-    nav{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 5px;
-    padding-left: 3%; 
-    padding-right: 3%;
-    background-color: transparent;
-    z-index: 1;
-    font-size: 14px;
-    }
-
-    nav ul li a {
-        color: white;
-        text-decoration: none;
-        font-weight: bold;
-        transition: .3s;
-    }
-
-    nav ul li a:hover {
-    text-decoration: none;
-    color: hsla(160, 100%, 37%, 1);
-    }
+<style>
+.navbar {
+  background-color: #050608; 
+}
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  padding-left: 20px;
+}
+.navbar-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  text-decoration: none;
+}
+.navbar-burger {
+  size: 10px;
+}
+.your-text {
+  color: #fdba37;
+  text-decoration: none; 
+}
+.moon-text {
+  color: #ffffff;
+  text-decoration: none; 
+}
+.navbar-item:hover {
+  background-color: #645394;
+  color: #ffffff;
+}
+.navbar-item:active {
+  background-color: #645394;
+  color: #ffffff;
+}
+.navbar-item:focus {
+  background-color: #645394;
+  color: #ffffff;
+}
 </style>
-
-

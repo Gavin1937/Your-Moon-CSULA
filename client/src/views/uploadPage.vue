@@ -10,7 +10,7 @@ import MoonRegistration from "../moon-registration";
 import config from "../../config/config.json";
 import { nearestCity } from 'cityjs';
 import dataArray from "./arrays.js";
-import SearchAutocomplete from "../components/SearchAutocomplete.vue";
+import SearchAutocomplete from "../components/SearchAutoComplete.vue";
 // This is the ref to the cropper DOM element
 const cropr = ref(null);
 
@@ -42,8 +42,8 @@ let data = reactive({
   // Tracks time input if there isn't meta data
   time: '',
   iframe:{
-		src: ""
-	},
+    src: ""
+  },
   file: null,
   fileType: '',
   imageDataUrl: null,
@@ -228,13 +228,16 @@ function checkFileType(file) {
       // References:
       // https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
       // https://en.wikipedia.org/wiki/List_of_file_signatures
-      if (dataview.getUint16(0,false) == 0x424d) {
+      if (dataview.getUint16(0, false) == 0x424d) {
         fileType = "bmp";
-      } else if (dataview.getUint32(0,true) & 0x00ffd8ff > 0) {
+      } else if (dataview.getUint32(0, true) & (0x00ffd8ff > 0)) {
         fileType = "jpg";
-      } else if (dataview.getUint32(0,true) & 0x00474e50 > 0) {
+      } else if (dataview.getUint32(0, true) & (0x00474e50 > 0)) {
         fileType = "png";
-      } else if (dataview.getUint32(0,false) == 0x52494646 && dataview.getUint32(8,false) == 0x57454250) {
+      } else if (
+        dataview.getUint32(0, false) == 0x52494646 &&
+        dataview.getUint32(8, false) == 0x57454250
+      ) {
         fileType = "webp";
       } else {
         fileType = "invalid";
@@ -243,7 +246,10 @@ function checkFileType(file) {
 
       data.fileType = fileType;
       data.isValidFileType = fileType !== "invalid" ? true : false;
-      resolve({ fileType: data.fileType, isValidFileType: data.isValidFileType });
+      resolve({
+        fileType: data.fileType,
+        isValidFileType: data.isValidFileType,
+      });
     };
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);
@@ -274,9 +280,13 @@ async function onFileChange(e) {
             // DataUrl looks like:
             // data:<MIME-TYPE>;base64,<BASE-64 DATA>
             // we need to extract only the <BASE-64 DATA> part
-            let b64content = e.target.result.substr(e.target.result.indexOf(';base64,')+8)
-            data.imageHash = CryptoJS.MD5(CryptoJS.enc.Base64.parse(b64content)).toString();
-            console.log(data.imageHash)
+            let b64content = e.target.result.substr(
+              e.target.result.indexOf(";base64,") + 8
+            );
+            data.imageHash = CryptoJS.MD5(
+              CryptoJS.enc.Base64.parse(b64content)
+            ).toString();
+            console.log(data.imageHash);
           };
           reader.readAsDataURL(data.file);
           RunDetectMoon(data.file);
@@ -376,7 +386,11 @@ async function RunDetectMoon(_fileObject, _type = "square") {
   }
 }
 async function onMoonPositionUpdate(new_position_circle, new_position) {
-  data.moon_position_circle = { x: new_position_circle.x, y: new_position_circle.y, radius: new_position_circle.radius };
+  data.moon_position_circle = {
+    x: new_position_circle.x,
+    y: new_position_circle.y,
+    radius: new_position_circle.radius,
+  };
   if (new_position.type == "square") {
     data.moon_position = { x: new_position.x, y: new_position.y, width: new_position.width }
     console.log('moon_position:',data.moon_position)
@@ -453,7 +467,7 @@ async function uploadCroppedImage() {
 
 <template>
   <body class="background">
-    <div class="content-block d-flex justify-content-center align-items-center">
+    <div class="container content-block d-flex justify-content-center align-items-center">
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
@@ -475,6 +489,8 @@ async function uploadCroppedImage() {
           :zoomOnTouch="false"
           :movable="false"
           :viewMode="3"
+          :dragMode="'move'"
+          :toggleDragModeOnDblclick="false"
           :restore="false"
           :responsive="false"
           :aspectRatio="1"
@@ -483,8 +499,24 @@ async function uploadCroppedImage() {
           @ready="onCropperReady"
         />
       </div>
-      <div class="status-message" v-if="fileSizeExceeded || !isValidFileType || invalidCoords">
+      <!-- <div class="status-message" v-if="fileSizeExceeded || !isValidFileType || invalidCoords"> 
         {{ data.message }}
+      </div> 
+  -->
+      <div v-if="data.mapReady">
+        <iframe
+          width="0"
+          height="0"
+          frameborder="0"
+          style="border: 0"
+          referrerpolicy="no-referrer-when-downgrade"
+          :src="data.iframe.src"
+          allowfullscreen
+        >
+        </iframe>
+        <p>Can you confirm location from where Moon shot was taken?</p>
+        <button @click="closeMapAndResetLatLonFields">No</button>
+        <button @click="uploadCroppedImage">Yes</button>
       </div>
 	  <!-- <div v-if="data.mapReady">
     <iframe width="450" height="250"
@@ -506,11 +538,11 @@ async function uploadCroppedImage() {
                 <div class="file is-centered">
                   <label class="file-label">
                     <!-- <input class="file-input" type="file" ref="lunarImage" @change="onSelect" /> add back to code-->
-                    <span class="file-cta">
+                    <!-- <span class="file-cta">
                       <span class="file-icon">
                         <font-awesome-icon icon="fa-solid fa-file-arrow-up" />
                       </span>
-                    </span>
+                    </span> -->
                   </label>
                 </div>
               </div>
@@ -521,15 +553,15 @@ async function uploadCroppedImage() {
                   
                 <div>
                   
-                  <div class="column is-one-fifth">
+                  <div class="column">
                     <SearchAutocomplete :items="dataArray" propertyToFilterBy="countryCode" :searchInitialValue="data.countryCode" @update:search="updateCountryCode"/>
                     
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column">
                     <SearchAutocomplete :items="dataArray" propertyToFilterBy="city" :searchInitialValue="data.nearestCity" @update:search="updateCity"/>
                   </div>
                 </div>
-                  <div class="column is-one-fifth">
+                  <div class="column is-narrow ">
                     <div class="field">
                       <label class="label"> Altitude </label>
                       <div class="control">
@@ -537,7 +569,7 @@ async function uploadCroppedImage() {
                           class="input"
                           type="number"
                           v-model="data.altitude"
-						  required
+                          required
                         />
                       </div>
                     </div>
@@ -545,35 +577,55 @@ async function uploadCroppedImage() {
                 </div>
 
                 <div class="columns is-centered">
-                  <div class="column is-one-fifth">
+                  <div class="column is-half">
                     <div class="field">
                       <label class="label"> Date </label>
                       <div class="control">
-                        <input class="input" type="date" v-model="data.date" required/>
+                        <input
+                          class="input"
+                          type="date"
+                          v-model="data.date"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column is-half">
                     <div class="field">
                       <label class="label"> Time </label>
                       <div class="control">
-                        <input class="input" type="time" v-model="data.time" required />
+                        <input
+                          class="input"
+                          type="time"
+                          v-model="data.time"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column ">
                     <div class="field">
                       <label class="label"> Instrument Make </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.make" required />
+                        <input
+                          class="input"
+                          type="text"
+                          v-model="data.make"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
-                  <div class="column is-one-fifth">
+                  <div class="column ">
                     <div class="field">
                       <label class="label"> Instrument Model </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.model" required />
+                        <input
+                          class="input"
+                          type="text"
+                          v-model="data.model"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
@@ -585,9 +637,9 @@ async function uploadCroppedImage() {
 							</button> -->
               </div>
             </form>
-            <p class="status-message">
+            <!-- <p class="status-message">
               {{ data.message }}
-            </p>
+            </p> -->
           </div>
           <div v-if="data.croppedImage">
             <button
@@ -597,6 +649,18 @@ async function uploadCroppedImage() {
             >
               Upload
             </button>
+
+            
+              <div
+                class="status-message"
+                v-if="fileSizeExceeded || !isValidFileType || invalidCoords"
+              >
+                {{ data.message }}
+                <p class="status-message">
+                  {{ data.message }}
+                </p>
+              
+            </div>
           </div>
         </div>
       </div>
@@ -606,16 +670,16 @@ async function uploadCroppedImage() {
 
 <!-- eslint-disable prettier/prettier -->
 <style>
-  .content-block {
-    font-family: monospace;
-    max-width: 100rem;
-    background-color: #3C3C3C; 
-    padding: 30px;
-    margin-top: 20px;
-    border: 2px solid #E6E6E6; 
-    margin-left: auto;
-    margin-right: auto;
-  }
+.content-block {
+  font-family: monospace;
+  max-width: 100rem;
+  background-color: #3C3C3C;
+  padding: 30px;
+  margin-top: 20px;
+  border: 2px solid #E6E6E6;
+  margin-left: auto;
+  margin-right: auto;
+}
 
 /* added */
 .autocomplete{
@@ -651,7 +715,7 @@ async function uploadCroppedImage() {
 
 /* end */
 .move {
-  margin-left: 5px;
+  margin-left:5px;
 }
 
 .resize {
@@ -677,7 +741,7 @@ async function uploadCroppedImage() {
   padding-top: 2%;
 }
 
-.container {
+.primary-container {
   display: flex;
   max-width: 800px;
   margin: 0 auto;
@@ -746,8 +810,6 @@ async function uploadCroppedImage() {
   padding-left: 2.5%;
   padding-top: 1%;
 }
-
-
 
 #image-upload,
 .status-message {

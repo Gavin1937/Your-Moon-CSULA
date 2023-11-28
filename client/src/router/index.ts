@@ -6,7 +6,7 @@ import landingPage from "../views/landingPage.vue";
 import axios from 'axios';
 import config from "../../config/config.json";
 const routes = [
-    {path: '/upload', name: 'Upload', component: uploadPage, meta:{requiresAuth:true}},
+    {path: '/upload', name: 'Upload', component: uploadPage, meta:{requiresAuth:false}},
     {path: '/', name: 'LandingPage', component: landingPage}
 ]
 
@@ -39,20 +39,20 @@ const router = createRouter({
 })
 
 
-// router.beforeEach(async (to, from, next) => {
-//   if (to.matched.some(record => record.meta.requiresAuth)) {
-//     const authenticated = await isAuthenticated();
-//     if (!authenticated) {
-//       next({
-//         path: '/',
-//         query: { redirect: to.fullPath }
-//       });
-//     } else {
-//       next();
-//     }
-//   } else {
-//     next(); 
-//   }
-// });
+router.beforeEach(async (to, from, next) => {
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      next({
+        path: '/',
+        query: { redirect: to.fullPath }
+      });
+    } else {
+      next();
+    }
+  } else {
+    next(); 
+  }
+});
 export default router
 

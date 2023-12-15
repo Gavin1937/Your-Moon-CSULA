@@ -2,15 +2,17 @@
 <script setup>
 import Cropper from "vue-cropperjs";
 import "cropperjs/dist/cropper.css";
-import CryptoJS from 'crypto-js';
+import CryptoJS from "crypto-js";
 import axios from "axios";
 import ExifReader from "exifreader";
 import { ref, reactive } from "vue";
 import MoonRegistration from "../moon-registration";
 import config from "../../config/config.json";
-import { nearestCity } from 'cityjs';
-import dataArray from "./arrays.js";
-import SearchAutocomplete from "../components/SearchAutoComplete.vue";
+import { nearestCity } from "cityjs";
+import citiesArray from "@/data/arrays.js";
+import countriesArray from "@/data/countriesArray.js";
+import CityAutoComplete from "../components/CityAutoComplete.vue";
+import CountryAutoComplete from "../components/CountryAutoComplete.vue";
 // This is the ref to the cropper DOM element
 const cropr = ref(null);
 
@@ -25,90 +27,70 @@ let data = reactive({
   maxFileSize: 30 * 1024 * 1024, //max file size 30MB
   fileSizeExceeded: false,
   isValidFileType: false,
-  latitude: '',
-  longitude: '',
-  nearestCity: '',
-  countryCode: '',
+  latitude: "",
+  longitude: "",
+  nearestCity: "",
+  countryCode: "",
+  countryName: "",
   inValidCoords: null,
-  altitude: '',
-  timeStamp: '',
+  altitude: "",
+  timeStamp: "",
   isOpen: false, //is autocomplete suggestions open
   suggestions: null, //suggestions for autocomplete
   // Data retrieved from RunMoonDetect()
   moon_position: null,
   moon_position_circle: null,
   // Tracks date input if there isn't meta data
-  date: '',
+  date: "",
   // Tracks time input if there isn't meta data
-  time: '',
+  time: "",
   iframe: {
-    src: ""
+    src: "",
   },
   file: null,
-  fileType: '',
+  fileType: "",
   imageDataUrl: null,
   imageHash: null,
   showCropper: false,
   croppedImage: null,
-  mapReady: false
-})
+  mapReady: false,
+});
 
-//function when user clicks no -that location on OpenStreetMaps is wrong
-// function closeMapAndResetLatLonFields(){
-// 	data.mapReady = false;
-// 	data.latitude = '';
-// 	data.longitude = '';
-// }
-
-
-function updateCity(params) {
-  data.nearestCity = params
+function updateCityName(params) {
+  data.nearestCity = params;
 }
 
 function updateCountryCode(params) {
-  data.countryCode = params
+  //O(n) of 249 size array
+  const foundCountry = countriesArray.find(
+    (country) => country.name === params
+  );
+  const countryCode = foundCountry ? foundCountry.code : null;
+  data.countryCode = countryCode;
+}
+
+//to pre populate country name field if coords are present in exif
+function getCountryName(countryCode) {
+  //O(n) of 249 size array
+  const foundCountry = countriesArray.find(
+    (country) => country.code === countryCode
+  );
+  const countryName = foundCountry ? foundCountry.name : null;
+  return countryName;
 }
 
 function updateCoordinates(city, countryCode) {
-  //Note: O(n) and array has size of 50k 
-  const coords = dataArray.find(item => item.city === city && item.countryCode === countryCode);
+  //Note: O(n) and array has size of about 50k
+  const coords = citiesArray.find(
+    (item) => item.city === city && item.countryCode === countryCode
+  );
   if (coords) {
     data.latitude = coords.lat;
     data.longitude = coords.lon;
   } else {
     console.log("Coords to city and country code not found");
   }
-
 }
-// function handleUpdate(newSearchValue){
-//   console.log("new search value: " + newSearchValue);
-// }
-
-
-
-//lat range -90 - 90, lon -180 - 180, would cause error on OpenStreetMaps if not valid lat and lon
-// function validateCoords(){
-// 	if(data.latitude >= -90 && data.latitude <= 90){
-// 		if(data.longitude >= -180 && data.longitude <= 180){
-// 			data.message = ""
-// 			// showCoordsOnMap()
-// 		}
-// 	}else{
-// 		data.invalidCoords = true;
-// 		data.message = "Invalid coordinates";
-// 		data.latitude = "";
-// 		data.longitude = "";
-// 	}	
-// }
-
-
-// function showCoordsOnMap(){
-// 	const city = nearestCity({latitude: data.latitude, longitude: data.longitude});
-// 	const qParam = city.name.replace(" ", "+");
-//   console.log(city)
-//   const query = {latitude: data.latitude, longitude: data.longitude};
-//   const cities = nearbyCities(query);
-//   console.log(cities)
 
 //   // lat, lon, zoom to OSM bounding box
 //   // https://stackoverflow.com/a/17811173
@@ -208,8 +190,6 @@ async function onCropperReady() {
   }
 }
 
-
-
 //checks bytes of file header to check file type because human readable MIME type can be manipulated
 function checkFileType(file) {
   return new Promise((resolve, reject) => {
@@ -257,8 +237,8 @@ function checkFileType(file) {
 }
 
 async function onFileChange(e) {
+  console.log(countriesArray);
   const files = e.target.files;
-
   if (files.length > 0) {
     data.file = files[0];
     checkFileType(data.file).then(() => {
@@ -313,30 +293,29 @@ async function updateMetaData() {
       // Keep all North latitude values positive
       // and make South latitude values negative
 
-      if (tags.GPSLatitudeRef.value[0] === 'N') {
+      if (tags.GPSLatitudeRef.value[0] === "N") {
         data.latitude = tags.GPSLatitude.description;
       } else {
         data.latitude = -1 * tags.GPSLatitude.description;
       }
 
-
       // Keep all East longitude values positive
       // and make West longitude values negative
-      if (tags.GPSLongitudeRef.value[0] === 'E') {
+      if (tags.GPSLongitudeRef.value[0] === "E") {
         data.longitude = tags.GPSLongitude.description;
       } else {
         data.longitude = -1 * tags.GPSLongitude.description;
       }
 
-      //populate country code and nearest city fields
-      const city = nearestCity({ latitude: data.latitude, longitude: data.longitude });
-      console.log(city);
+      //populate country name and nearest city fields
+      const city = nearestCity({
+        latitude: data.latitude,
+        longitude: data.longitude,
+      });
+      // console.log(city);
       data.nearestCity = city.name;
       data.countryCode = city.countryCode;
-
-
-
-
+      data.countryName = getCountryName(data.countryCode);
     }
     if (tags.GPSAltitude) {
       //.slice removes last 2 characters (blank space and m)
@@ -344,11 +323,11 @@ async function updateMetaData() {
     }
     if (tags.DateTimeOriginal) {
       // Get datetime in YYYY:MM:DD HH:MM:SS
-      const imageDate = tags.DateTimeOriginal.description
+      const imageDate = tags.DateTimeOriginal.description;
       //Split time and date
-      const [datePart, timePart] = imageDate.split(' ');
+      const [datePart, timePart] = imageDate.split(" ");
       //Split date
-      const [year, month, day] = datePart.split(':');
+      const [year, month, day] = datePart.split(":");
       //Reformat date into something compatible with the field.
       const temp_date = `${year}-${month}-${day}`;
       data.date = temp_date;
@@ -362,8 +341,6 @@ async function updateMetaData() {
   } catch (error) {
     console.log(error);
   }
-
-
 }
 // wrapper function to run moon detection algorithm
 // parameters:
@@ -380,7 +357,7 @@ async function updateMetaData() {
 //   * returns from MoonDetection() will be receive & process by this.onMoonPositionUpdatse()
 async function RunDetectMoon(_fileObject, _type = "square") {
   try {
-    MoonRegistration.MoonDetection(_fileObject, _type, onMoonPositionUpdate)
+    MoonRegistration.MoonDetection(_fileObject, _type, onMoonPositionUpdate);
   } catch (err) {
     data.message = err;
   }
@@ -392,8 +369,12 @@ async function onMoonPositionUpdate(new_position_circle, new_position) {
     radius: new_position_circle.radius,
   };
   if (new_position.type == "square") {
-    data.moon_position = { x: new_position.x, y: new_position.y, width: new_position.width }
-    console.log('moon_position:', data.moon_position)
+    data.moon_position = {
+      x: new_position.x,
+      y: new_position.y,
+      width: new_position.width,
+    };
+    console.log("moon_position:", data.moon_position);
   }
 }
 // function that gets the cropped image and sends it to server-side
@@ -402,39 +383,39 @@ async function uploadCroppedImage() {
     //update lat and lon to nearest city
     updateCoordinates(data.nearestCity, data.countryCode);
     // make post request to upload image to database
-    let img_filename = `${data.imageHash}.${data.file.type.split('/')[1]}`;
+    let img_filename = `${data.imageHash}.${data.file.type.split("/")[1]}`;
     let metadata_params = {
-      "instrument": {
-        "inst_type": "phone", // TODO: add additional drop-down menu for instrument type. ("phone", "camera", "phone+telescope", "camera+telescope")
-        "inst_make": data.make,
-        "inst_model": data.model
+      instrument: {
+        inst_type: "phone", // TODO: add additional drop-down menu for instrument type. ("phone", "camera", "phone+telescope", "camera+telescope")
+        inst_make: data.make,
+        inst_model: data.model,
       },
-      "image": {
-        "img_name": img_filename,
-        "img_type": data.file.type,
-        "img_uri": './' + img_filename, // TODO: file uri should be determined by the server
-        "img_altitude": Number.parseFloat(data.altitude),
-        "img_longitude": Number.parseFloat(data.longitude),
-        "img_latitude": Number.parseFloat(data.latitude),
-        "img_timestamp": Math.floor((new Date()).getTime() / 1000), // TODO: derive image's original unix timestamp when taken from geolocation & datetime
+      image: {
+        img_name: img_filename,
+        img_type: data.file.type,
+        img_uri: "./" + img_filename, // TODO: file uri should be determined by the server
+        img_altitude: Number.parseFloat(data.altitude),
+        img_longitude: Number.parseFloat(data.longitude),
+        img_latitude: Number.parseFloat(data.latitude),
+        img_timestamp: Math.floor(new Date().getTime() / 1000), // TODO: derive image's original unix timestamp when taken from geolocation & datetime
       },
-      "moon": {
-        "moon_detect_flag": 1,
-        "moon_exist_flag": 1,
-        "moon_loc_x": data.moon_position_circle.x,
-        "moon_loc_y": data.moon_position_circle.y,
-        "moon_loc_r": data.moon_position_circle.radius
-      }
-    }
+      moon: {
+        moon_detect_flag: 1,
+        moon_exist_flag: 1,
+        moon_loc_x: data.moon_position_circle.x,
+        moon_loc_y: data.moon_position_circle.y,
+        moon_loc_r: data.moon_position_circle.radius,
+      },
+    };
     const meta_res = await axios.post(
       `${config.backend_url}/api/picMetadata`,
       metadata_params,
-      { withCredentials: true, }
+      { withCredentials: true }
     );
 
     if (meta_res.status == 200) {
-      const imgFile = await new Promise(resolve => {
-        cropr.value.getCroppedCanvas().toBlob(img => {
+      const imgFile = await new Promise((resolve) => {
+        cropr.value.getCroppedCanvas().toBlob((img) => {
           resolve(img);
         });
       });
@@ -442,7 +423,9 @@ async function uploadCroppedImage() {
       formData.append(
         "lunarImage",
         // we can rename imgFile by re-create a new File obj
-        new File([imgFile], metadata_params.image.img_name, { type: data.fileType }),
+        new File([imgFile], metadata_params.image.img_name, {
+          type: data.fileType,
+        }),
         data.fileType
       );
       const upload_res = await axios.post(
@@ -456,7 +439,6 @@ async function uploadCroppedImage() {
 
       data.message = status;
     }
-
   } catch (err) {
     data.message = err;
   }
@@ -467,7 +449,9 @@ async function uploadCroppedImage() {
 
 <template>
   <body class="background">
-    <div class="container content-block d-flex justify-content-center align-items-center">
+    <div
+      class="container content-block d-flex justify-content-center align-items-center"
+    >
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
@@ -484,8 +468,15 @@ async function uploadCroppedImage() {
       </div> 
   -->
       <div v-if="data.mapReady">
-        <iframe width="0" height="0" frameborder="0" style="border: 0" referrerpolicy="no-referrer-when-downgrade"
-          :src="data.iframe.src" allowfullscreen>
+        <iframe
+          width="0"
+          height="0"
+          frameborder="0"
+          style="border: 0"
+          referrerpolicy="no-referrer-when-downgrade"
+          :src="data.iframe.src"
+          allowfullscreen
+        >
         </iframe>
         <p>Can you confirm location from where Moon shot was taken?</p>
         <button @click="closeMapAndResetLatLonFields">No</button>
@@ -523,24 +514,32 @@ async function uploadCroppedImage() {
               <!-- this portion only shows up if the image has no EXIF data attached to it : v-if="!hasExif"-->
               <div id="manual-form" class="move">
                 <div class="columns is-centered">
-
                   <div>
-
                     <div class="column">
-                      <SearchAutocomplete :items="dataArray" propertyToFilterBy="countryCode"
-                        :searchInitialValue="data.countryCode" @update:search="updateCountryCode" />
-
+                      <CountryAutoComplete
+                        :dataArray="countriesArray"
+                        :initialValue="data.countryName"
+                        @updateCountry="updateCountryCode"
+                      />
                     </div>
                     <div class="column">
-                      <SearchAutocomplete :items="dataArray" propertyToFilterBy="city"
-                        :searchInitialValue="data.nearestCity" @update:search="updateCity" />
+                      <CityAutoComplete
+                        :dataArray="citiesArray"
+                        :initialValue="data.nearestCity"
+                        @updateCity="updateCityName"
+                      />
                     </div>
                   </div>
-                  <div class="column is-narrow ">
+                  <div class="column is-narrow">
                     <div class="field">
                       <label class="label"> Altitude </label>
                       <div class="control">
-                        <input class="input" type="number" v-model="data.altitude" required />
+                        <input
+                          class="input"
+                          type="number"
+                          v-model="data.altitude"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
@@ -551,7 +550,12 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Date </label>
                       <div class="control">
-                        <input class="input" type="date" v-model="data.date" required />
+                        <input
+                          class="input"
+                          type="date"
+                          v-model="data.date"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
@@ -559,23 +563,38 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Time </label>
                       <div class="control">
-                        <input class="input" type="time" v-model="data.time" required />
+                        <input
+                          class="input"
+                          type="time"
+                          v-model="data.time"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
-                  <div class="column ">
+                  <div class="column">
                     <div class="field">
                       <label class="label"> Instrument Make </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.make" required />
+                        <input
+                          class="input"
+                          type="text"
+                          v-model="data.make"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
-                  <div class="column ">
+                  <div class="column">
                     <div class="field">
                       <label class="label"> Instrument Model </label>
                       <div class="control">
-                        <input class="input" type="text" v-model="data.model" required />
+                        <input
+                          class="input"
+                          type="text"
+                          v-model="data.model"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
@@ -596,13 +615,14 @@ async function uploadCroppedImage() {
               Upload
             </button>
 
-
-            <div class="status-message" v-if="fileSizeExceeded || !isValidFileType || invalidCoords">
+            <div
+              class="status-message"
+              v-if="fileSizeExceeded || !isValidFileType || invalidCoords"
+            >
               {{ data.message }}
               <p class="status-message">
                 {{ data.message }}
               </p>
-
             </div>
           </div>
         </div>
@@ -616,10 +636,10 @@ async function uploadCroppedImage() {
 .content-block {
   font-family: monospace;
   max-width: 100rem;
-  background-color: #3C3C3C;
+  background-color: #3c3c3c;
   padding: 30px;
   margin-top: 20px;
-  border: 2px solid #E6E6E6;
+  border: 2px solid #e6e6e6;
   margin-left: auto;
   margin-right: auto;
 }
@@ -648,7 +668,7 @@ async function uploadCroppedImage() {
 
 .autocomplete-result:hover {
   /*when hovering an item:*/
-  background-color: #4AAE9B;
+  background-color: #4aae9b;
   color: white;
 }
 

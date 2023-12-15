@@ -103,13 +103,4 @@ docker-compose -f docker-compose-reverse-proxy.yml build --no-cache
 
 ## DATABASE
 
- - currently, you can only run this locally since there's no server that we can use (i think in the future we can use the schools virtual machine)
- - download a program called XAMPP
- - this is a video tutorial to set up XAMPP and configure it to create a database
-    - https://www.youtube.com/watch?v=pVVACLH0la0&ab_channel=TroubleChute
- - you would also have to create a database called 'LunarImages'
- - Notes:
-    - table is called 'YourMoonDB'
-
-* Also considering using Docker for database
-  * [checkout this documentation](https://dev.mysql.com/doc/mysql-installation-excerpt/8.0/en/docker-mysql-getting-started.html)
+[Refer to this document](./db/README.md)

@@ -14,6 +14,11 @@ services:
     ports:
       - "3001:3001"
   
+  your-moon-redis:
+    image: redis
+    container_name: your-moon-redis
+    restart: unless-stopped
+  
   your-moon-client:
     build:
       context: client/

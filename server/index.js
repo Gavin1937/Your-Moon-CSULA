@@ -12,7 +12,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const DBManager = require('./DBManager.js');
 var logger = require('./logger.js')(config.log_file, config.log_level);
-var db = new DBManager(config.db, config.aes_key, config.jwt_secret, logger);
+var db = new DBManager(config.db, config.aes_key, config.jwt_secret, config.jobtable, logger);
 const upload = require('./multerSetup.js')(process.env.STORAGE_METHOD, config, logger);
 const CryptoJS = require("crypto-js");
 const passport = require("./passport.js")(config.oauth, db, logger);
@@ -73,7 +73,7 @@ function uploadHandler(next) { // outer function takes in "next" request handler
 	};
 }
 
-//! If we eventually decide to use AWS S3, we should remove this endpoint
+//! If we eventually decide to use AWS S3, we should remove/modify this endpoint
 // upload picture file (file upload only)
 app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db handler as "next" function
 	try {
@@ -121,9 +121,9 @@ app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db han
 				const imageType = req.file.mimetype; // type of the image file
 				const path = req.file.path; // gets the buffer
 				
-				logger.info(`NAME: ${imageName}`);
-				logger.info(`IMAGE TYPE: ${imageType}`);
-				logger.info(`path: ${path}`);
+				logger.debug(`NAME: ${imageName}`);
+				logger.debug(`IMAGE TYPE: ${imageType}`);
+				logger.debug(`path: ${path}`);
 				
 				// rm job from the queue
 				db.finishUploadJob(upload_uuid, 1, 0, (error2, result2) => {
@@ -136,6 +136,7 @@ app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db han
 						});
 					}
 					else {
+						logger.info("IMAGE UPLOAD SUCCESSFULLY!");
 						// upload success, save file
 						res.status(200).json({
 							status: "UPLOAD SUCCESSFUL ! ✔️"
@@ -157,7 +158,7 @@ app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db han
 // upload picture metadata
 app.post("/api/picMetadata", (req, res) => {
 	try {
-		logger.info("In picMetadata");
+		logger.debug("In picMetadata");
 		logger.debug(`req.body:`);
 		logger.debug(JSON.stringify(req.body));
 		
@@ -197,11 +198,10 @@ app.post("/api/picMetadata", (req, res) => {
 						});
 					}
 					else {
-						logger.info("Successfully inserted into the YourMoonDB!");
 						logger.info("IMAGE INSERTED SUCCESSFULLY!");
 						
 						// TODO: use redis for this job queue
-						db.registerUploadJob(config.upload_job_expire, 1, (error3, result3) => {
+						db.registerUploadJob(config.upload_job_expire, result.user_id, (error3, result3) => {
 							if (result3 == null) {
 								res.status(400).json({
 									status: "UPLOAD FAILED ! ❌",
@@ -231,104 +231,14 @@ app.post("/api/picMetadata", (req, res) => {
 	}
 });
 
-app.get("/api/emailAESKey", (req, res) => {
-	try {
-		logger.info("In emailAESKey");
-		logger.debug(`req.body:`);
-		logger.debug(JSON.stringify(req.body));
-		
-		db.registerUserRegistrationJob(300, (error, result) => {
-            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
-			if (error) {
-				logger.error(`error:\n${error}`);
-				res.status(400).json({
-					status: "KEY GENERATION FAILED ! ❌",
-					message: error.toString(),
-				});
-			}
-			else {
-				res.status(200).json({
-					status: "NEW AES KEY",
-					...result
-				});
-			}
-		})
-	}
-	catch (error) {
-		logger.error(`Exception:\n${error.stack}`);
-		res.status(500).json({
-			status: "KEY GENERATION FAILED ! ❌",
-			message: "Internal Server Error",
-		});
-	}
-})
-
-app.post("/api/authUser", (req, res) => {
-	try {
-		logger.info("In authUser");
-		logger.debug(`req.body:`);
-		logger.debug(JSON.stringify(req.body));
-		
-		// TODO: retrieve email from OAuth 2.0
-		const { user_email, uuid } = req.body;
-		logger.debug(`user_email: ${user_email}`);
-		logger.debug(`uuid: ${uuid}`);
-		
-		db.finishUserRegistrationJob(uuid, user_email, (error, result) => {
-            logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-            logger.debug(`error: ${JSON.stringify(error,null,2)}`);
-			if (error) {
-				res.status(400).json({
-					status: "REGISTER OR LOGIN FAILED ! ❌",
-					message: "FAILED TO DECRYPT EMAIL",
-				});
-				return;
-			}
-			else {
-				db.registerOrLoginUser(result.user_email, (error, result) => {
-					logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-					logger.debug(`error: ${JSON.stringify(error,null,2)}`);
-					if (error) {
-						logger.error(`error:\n${error}`);
-						let message = null;
-						if (error) {
-							message = "FAILED TO REGISTER OR LOGIN USER";
-						}
-						res.status(400).json({
-							status: "REGISTER OR LOGIN FAILED ! ❌",
-							message: message,
-						});
-						logger.error(message);
-					}
-					else {
-						// response with jwt
-						res.status(200).json(result);
-					}
-				});
-			}
-		});
-	}
-	catch (error) {
-		logger.error(`Exception:\n${error.stack}`);
-		res.status(500).json({
-			status: "SERVER FAILED ! ❌",
-			message: "Internal Server Error",
-		});
-	}
-})
-
-//! This is a demo endpoint, we need to verify user's jwt right inside other endpoints
 app.get("/api/verifyUser", (req, res) => {
 	try {
-		logger.info("In verifyUser");
-		logger.debug(`req.body:`);
-		//logger.debug(JSON.stringify(req.body));
+		logger.debug("In verifyUser");
+		logger.debug(`req.body: ${JSON.stringify(req.body)}`);
 		
 		// user_jwt is inside http header: authorization
 		let user_jwt = req.cookies.token;
-		logger.debug("user_jwt")
-		logger.info(`user_jwt: ${user_jwt}`);
+		logger.debug(`user_jwt: ${user_jwt}`);
 		
 		db.verifyUserJWT(user_jwt, (error, result) => {
             logger.debug(`result: ${JSON.stringify(result,null,2)}`);
@@ -344,7 +254,7 @@ app.get("/api/verifyUser", (req, res) => {
 				logger.info("VERIFIED USER!");
 				res.status(200).json({
 					status: "VERIFY SUCCESS ! ✔️",
-					verify:result
+					verified: result.ok
 				});
 			}
 		});
@@ -357,6 +267,54 @@ app.get("/api/verifyUser", (req, res) => {
 		});
 	}
 })
+
+//! Users should only register account using OAuth
+//! Once OAuth is done, we should remove this endpoint
+//! Or maybe we can turn this into a guest user endpoint?
+//! For now, lets disable this endpoint in production
+if (process.env.NODE_ENV !== "production") {
+// Authenticate or Register User
+app.post("/api/authUser", (req, res) => {
+	try {
+		logger.debug("In authUser");
+		logger.debug(`req.body:`);
+		logger.debug(JSON.stringify(req.body));
+		
+		// TODO: retrieve email from OAuth 2.0
+		const { user_email } = req.body;
+		logger.debug(`user_email: ${user_email}`);
+		
+		db.registerOrLoginUser(user_email, (error, result) => {
+			logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+			logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+			if (error) {
+				logger.error(`error:\n${error}`);
+				let message = null;
+				if (error) {
+					message = "FAILED TO REGISTER OR LOGIN USER";
+				}
+				res.status(400).json({
+					status: "REGISTER OR LOGIN FAILED ! ❌",
+					message: message,
+				});
+				logger.error(message);
+			}
+			else {
+				// response with jwt
+				res.status(200).json(result);
+			}
+		});
+	}
+	catch (error) {
+		logger.error(`Exception:\n${error.stack}`);
+		res.status(500).json({
+			status: "SERVER FAILED ! ❌",
+			message: "Internal Server Error",
+		});
+	}
+})
+}
+
 
 // running on port 3001 currently
 app.listen(config.app_port, () => {

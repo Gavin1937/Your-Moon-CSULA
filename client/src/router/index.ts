@@ -15,21 +15,15 @@ const isAuthenticated = async () => {
     const res = await axios.get(config.backend_url + '/api/verifyUser', {
       withCredentials: true
     });
-
-    if (res.status === 200) {
-      console.log('Call succeeded');
-      return true;
-    } else {
-      console.error('Failed to check authentication');
-      return false;
-    }
-
+    
+    return (res.status === 200 && res.data.verified);
+    
   } catch (error) {
     console.error('Failed to check authentication', error);
     return false;
   }
 };
-  
+
 
 
 
@@ -43,14 +37,17 @@ router.beforeEach(async (to, from, next) => {
   if (to.matched.some(record => record.meta.requiresAuth)) {
     const authenticated = await isAuthenticated();
     if (!authenticated) {
+      console.log('Bad authentication');
       next({
         path: '/',
         query: { redirect: to.fullPath }
       });
     } else {
+      console.log('Good authentication');
       next();
     }
   } else {
+    console.log('No authentication needed');
     next(); 
   }
 });

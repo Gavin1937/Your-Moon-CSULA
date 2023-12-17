@@ -1,8 +1,7 @@
 {
     "app_host": "localhost",
     "app_port": 3001,
-    "max_upload_size": 31457280,
-    "upload_job_expire": 300,
+    "max_upload_size": 31457280, // 30MB
     "log_file": "/path/to/your-moon-server.log",
     "log_level": "info",
     "session_key": "Base64_random_bytes_for_express_session_secret",
@@ -11,6 +10,14 @@
     "cors_origin_whitelist": [
         "http://localhost:5173"
     ],
+    "jobtable": {
+        "type": "can be either \"redis\" or \"native\"",
+        "expire": 600, // 10 min
+        "host": "127.0.0.1",
+        "port": 6379,
+        "username": "remove this field if no user account",
+        "password": "remove this field if no user account"
+    },
     "db": {
         "host": "localhost",
         "port": 3306,

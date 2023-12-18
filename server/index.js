@@ -270,10 +270,12 @@ app.get("/api/verifyUser", (req, res) => {
 
 //! Users should only register account using OAuth
 //! Once OAuth is done, we should remove this endpoint
-//! Or maybe we can turn this into a guest user endpoint?
 //! For now, lets disable this endpoint in production
 if (process.env.NODE_ENV !== "production") {
 // Authenticate or Register User
+// This endpoint can handle both normal user and guest user
+// Just add a new field `{"guest_user":true}` to the request body
+// and you will register as a guest
 app.post("/api/authUser", (req, res) => {
 	try {
 		logger.debug("In authUser");
@@ -281,10 +283,12 @@ app.post("/api/authUser", (req, res) => {
 		logger.debug(JSON.stringify(req.body));
 		
 		// TODO: retrieve email from OAuth 2.0
-		const { user_email } = req.body;
+		let { guest_user, user_email } = req.body;
+		guest_user = Boolean(guest_user);
+		logger.debug(`guest_user: ${guest_user}`);
 		logger.debug(`user_email: ${user_email}`);
 		
-		db.registerOrLoginUser(user_email, (error, result) => {
+		const register_handler = (error, result) => {
 			logger.debug(`result: ${JSON.stringify(result,null,2)}`);
 			logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
@@ -303,7 +307,13 @@ app.post("/api/authUser", (req, res) => {
 				// response with jwt
 				res.status(200).json(result);
 			}
-		});
+		}
+		
+		if (!guest_user && user_email.length > 0) {
+			db.registerOrLoginUser(user_email, register_handler);
+		} else if (guest_user) {
+			db.registerGuest(register_handler);
+		}
 	}
 	catch (error) {
 		logger.error(`Exception:\n${error.stack}`);

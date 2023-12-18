@@ -229,6 +229,25 @@ class DBManager {
         })
     }
     
+    registerGuest(handler)
+    {
+        if (this.establishedConnection == null || this.db == null) {
+            this.logger.error(`Did not connect to database or JobTable`);
+            handler(new Error(`Did not connect to database or JobTable`), null);
+            return;
+        }
+        
+        let session_uuid = uuid.v4();
+        let jwt_output = jwt.sign(
+            {user_id:'sess-'+session_uuid},
+            Buffer.from(this.jwt_secret, 'base64'),
+            {algorithm:"HS256", expiresIn:"1 hours"}
+        );
+        this.logger.debug(`jwt_output: ${jwt_output}`);
+        handler(null, jwt_output)
+        return;
+    }
+    
     verifyUserJWT(user_jwt, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
@@ -244,27 +263,36 @@ class DBManager {
                 handler(new Error("Invalid JWT"), null);
                 return;
             } else {
-                let get_email = `SELECT user_email FROM Users WHERE user_id = ? AND user_email_md5 = ?;`;
-                let get_email_list = [payload.user_id, payload.hashed_email];
-                this.db.query(get_email, get_email_list, (error, result) => {
-                    this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
-                    this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-                    if (error || result.length < 1) {
-                        handler(new Error("Failed to find user's email by id"), null);
-                        return;
-                    } else {
-                        let encrypted_email = result[0].user_email;
-                        this.logger.debug(`encrypted_email: ${encrypted_email.toString(CryptoJS.enc.Utf8)}`);
-                        let hashed_email = CryptoJS.MD5(encrypted_email).toString();
-                        this.logger.debug(`hashed_email: ${hashed_email}`);
-                        if (hashed_email != payload.hashed_email) {
-                            handler(new Error("User email not matching"), null);
+                // guest user session
+                if (typeof payload.user_id === 'string' && payload.user_id.startsWith('sess-')) {
+                    this.logger.debug(`guest user: ${payload.user_id}`);
+                    handler(null, {ok:true, ...payload});
+                    return;
+                }
+                // normal user
+                else {
+                    let get_email = `SELECT user_email FROM Users WHERE user_id = ? AND user_email_md5 = ?;`;
+                    let get_email_list = [payload.user_id, payload.hashed_email];
+                    this.db.query(get_email, get_email_list, (error, result) => {
+                        this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+                        this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+                        if (error || result.length < 1) {
+                            handler(new Error("Failed to find user's email by id"), null);
                             return;
                         } else {
-                            handler(null, {ok:true, ...payload});
+                            let encrypted_email = result[0].user_email;
+                            this.logger.debug(`encrypted_email: ${encrypted_email.toString(CryptoJS.enc.Utf8)}`);
+                            let hashed_email = CryptoJS.MD5(encrypted_email).toString();
+                            this.logger.debug(`hashed_email: ${hashed_email}`);
+                            if (hashed_email != payload.hashed_email) {
+                                handler(new Error("User email not matching"), null);
+                                return;
+                            } else {
+                                handler(null, {ok:true, ...payload});
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         });
     }

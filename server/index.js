@@ -254,7 +254,8 @@ app.get("/api/verifyUser", (req, res) => {
 				logger.info("VERIFIED USER!");
 				res.status(200).json({
 					status: "VERIFY SUCCESS ! ✔️",
-					verified: result.ok
+					verified: result.ok,
+					user_type: result.user_type
 				});
 			}
 		});

@@ -266,7 +266,7 @@ class DBManager {
                 // guest user session
                 if (typeof payload.user_id === 'string' && payload.user_id.startsWith('sess-')) {
                     this.logger.debug(`guest user: ${payload.user_id}`);
-                    handler(null, {ok:true, ...payload});
+                    handler(null, {ok:true, ...payload, user_type:'guest'});
                     return;
                 }
                 // normal user
@@ -288,7 +288,7 @@ class DBManager {
                                 handler(new Error("User email not matching"), null);
                                 return;
                             } else {
-                                handler(null, {ok:true, ...payload});
+                                handler(null, {ok:true, ...payload, user_type:'normal'});
                             }
                         }
                     });

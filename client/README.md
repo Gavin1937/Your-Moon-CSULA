@@ -63,6 +63,20 @@ npm install serve
 serve -l tcp://127.0.0.1:5173 dist
 ```
 
+> Note: deploying the frontend with `serve` would likely cause routing issue. (e.g. refreshing `/upload` path will return a 404)
+> 
+> you need to route paths who do not associate with any file to index.html, for example, `/upload` should be route to index.html
+>
+> References:
+> 
+> [https://stackoverflow.com/a/66514889](https://stackoverflow.com/a/66514889)
+> 
+> [https://router.vuejs.org/guide/essentials/history-mode.html#HTML5-Mode](https://router.vuejs.org/guide/essentials/history-mode.html#HTML5-Mode)
+> 
+> [https://router.vuejs.org/guide/essentials/history-mode.html#nginx](https://router.vuejs.org/guide/essentials/history-mode.html#nginx)
+>
+> It is easier to do that with a proper web server, you can use the [nginx.conf](./nginx.conf) file under `client` directory serving with nginx. [Please refer to vue.js documentation for more detail](https://router.vuejs.org/guide/essentials/history-mode.html#Example-Server-Configurations)
+
 5. you can also deploy client for development
 
 ```sh

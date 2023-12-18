@@ -1,4 +1,4 @@
-FROM node:alpine3.17
+FROM node:alpine3.17 AS build
 
 # setup working dir & copy source code
 WORKDIR /src/
@@ -8,12 +8,17 @@ COPY . .
 ARG BACKEND_URL
 RUN \
     mkdir config && echo '{"backend_url":"'"${BACKEND_URL}"'"}' > config/config.json && \
-    npm install && npm run build && npm install -g serve
+    npm install && npm run build
 
-# dev deploy
-# ENTRYPOINT ["npm", "run", "dev"]
 
-# production deploy
-ENTRYPOINT ["serve", "-l", "tcp://0.0.0.0:5173", "dist"]
+# serving built frontend with nginx
+FROM nginx:alpine
 
+WORKDIR /usr/share/nginx/html
+
+RUN rm -rf ./*
+COPY --from=build /src/dist .
+COPY ./nginx.conf /etc/nginx/nginx.conf
+
+ENTRYPOINT ["nginx", "-g", "daemon off;"]
 EXPOSE 5173

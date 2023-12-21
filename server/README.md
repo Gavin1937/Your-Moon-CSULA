@@ -29,6 +29,10 @@
     "cors_origin_whitelist": [
         "http://localhost:5173"
     ],
+    "rate_limit": {
+        "windowMs": 3600000, // 1 "window" is 3600000 ms (1 hr)
+        "limit": 50 // 50 requests per IP in 1 "window"
+    },
     "jobtable": {
         "type": "can be either \"redis\" or \"native\"",
         "expire": 600, // 10 min
@@ -75,10 +79,16 @@ print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8')
 
 * `cors_origin_whitelist` field is a list of urls to the the frontend, they are whitelist for cors cross origin protection. This is because we need to send credentials (cookie) from the frontend to backend.
 
+* `rate_limit` field tells the backend how to setup rate limiting for all the endpoints.
+  * `windowMs` is how many milliseconds per `window`
+  * `limit` is how many requests is allowed per IP in 1 `window`
+  * In the template showed above, we have `windowMs = 3600000` and `limit = 50`.
+  * Which means, **for each IP**, we allow **50 requests** to **all the endpoints** within **3600000 ms (1 hour)**
+
 * `jobtable` field tells the backend where to save its temporary cache data. The most important item is `type`, which can be either `redis` or `native`. The backend will use Redis server or JavaScript Object as its cache base on this value.
   * Although its recommend to setup user account for your Redis server, if you want to use default user, you can just remove `username` and `password` fields from `jobtable`. Or, just put `null` for them.
 
-4. you can use `.template` files under `src/server/config/` as your starting point
+1. you can use `.template` files under `src/server/config/` as your starting point
 
 
 ## Deploy

@@ -10,6 +10,10 @@
     "cors_origin_whitelist": [
         "http://localhost:5173"
     ],
+    "rate_limit": {
+        "windowMs": 3600000,
+        "limit": 50
+    },
     "jobtable": {
         "type": "redis",
         "expire": 600,

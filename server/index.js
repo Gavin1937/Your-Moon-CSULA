@@ -17,6 +17,7 @@ const upload = require('./multerSetup.js')(process.env.STORAGE_METHOD, config, l
 const CryptoJS = require("crypto-js");
 const passport = require("./passport.js")(config.oauth, db, logger);
 const session = require('express-session');
+const { rateLimit } = require('express-rate-limit');
 const authRoutes = require("./routes/auth");
 
 
@@ -37,6 +38,17 @@ app.use(session({
 	cookie: { secure: false }
 }));
 
+// add rate limiting to endpoints
+const limiter = rateLimit({
+	windowMs: config.rate_limit.windowMs,
+	limit: config.rate_limit.limit,
+	standardHeaders: 'draft-7', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+	// TODO: use RedisStore for rateLimiting
+	// reference: https://github.com/express-rate-limit/express-rate-limit/blob/main/test/external/stores/source/redis-store.ts
+	// store: ... , // Use an external store for consistency across multiple server instances.
+});
+app.use(limiter);
 
 app.use(passport.initialize());
 app.use(passport.session());

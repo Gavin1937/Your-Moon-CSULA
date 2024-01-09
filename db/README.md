@@ -51,6 +51,82 @@ Then, you need to initialize database and tables, just copy the content of [Your
 
 This sql file will create a database `YourMoonDB` with all the tables we need.
 
+## Connect to Database
+
+If you are using a MySQL Client or running the backend on your host machine (with `npm run devStart`), you can simply connect to `localhost:3306`.
+
+If you are running both of backend and db inside docker containers, you need to setup the docker networking so containers can find each other.
+
+1. launch the backend with docker
+2. use following command to find out which docker network is your backend container in
+
+```sh
+docker container inspect your-moon-server
+```
+
+* you need to look for `NetworkSettings -> Networks`
+* you will get a json like this
+
+```jsonc
+// ...
+"Networks": {
+    "server_default": { // this is the network name, "server_default"
+        "IPAMConfig": null,
+        "Links": null,
+        "Aliases": [
+            "your-moon-server",
+            "your-moon-server",
+            "a3f1bbd56b43"
+        ],
+        "NetworkID": "a3b64a6d8bb0426f369684f4a9cbeac68818a0a52c1421a67792220e6609b201",
+        "EndpointID": "750bdf5f1c5a4aee08b7029c320b29867225da80df189083e8cf071320305088",
+        "Gateway": "172.18.0.1",
+        "IPAddress": "172.18.0.3",
+        "IPPrefixLen": 16,
+        "IPv6Gateway": "",
+        "GlobalIPv6Address": "",
+        "GlobalIPv6PrefixLen": 0,
+        "MacAddress": "02:42:ac:12:00:03",
+        "DriverOpts": null
+    }
+}
+// ...
+```
+
+3. if you found your backend container's network name, you can then launch db container and connect it to the same network
+
+```sh
+docker network connect "your docker network name" yourmoon-db
+```
+
+4. if you cannot find your backend container's network name, you can create a new docker network for it and connect your db to it
+
+```sh
+docker network create your-moon-backend-network
+docker network connect your-moon-backend-network yourmoon-db
+docker network connect your-moon-backend-network your-moon-server
+```
+
+1. now, you should be able to see both db and backend containers present in the output of following command
+
+```sh
+docker network inspect "your docker network name"
+```
+
+6. Once your backend and db container are in the same network, you can use their name as host name, docker will do the DNS for us automatically. In the backend config, you can set:
+
+```jsonc
+// ...
+"db": {
+    "host": "yourmoon-db",
+    "port": 3306,
+    "user": "root",
+    "password": "root",
+    "database": "YourMoonDB"
+}
+// ...
+```
+
 ## After Database Setup
 
 At this point, you already can use the database with the root account. However, it is a bad idea to deploy your app using database root account. So we recommend you to setup an user account for this application.

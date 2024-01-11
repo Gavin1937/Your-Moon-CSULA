@@ -12,15 +12,20 @@ passport.use(new GitHubStrategy({
   callbackURL: "/api/auth/github/callback"
 },
 function(accessToken, refreshToken, profile, cb) {
-  const email = profile.emails[0].value;
-  db.registerOrLoginUser(email, (err, profile) =>{
+  const register_handler = (err, profile) =>{
     if(err){
       logger.error(err)
       return done(err)
     }
     return done(null, profile)
-  })
-  done(null,profile)
+  };
+  
+  const email = profile.emails[0].value;
+  db.registerOrLoginUser(email, register_handler);
+  done(null,profile);
+  // TODO: find a way to determine whether user is opt-in or not
+  // TODO: and then register user as normal user or guest base on that
+  // db.registerGuest(register_handler);
 }
 ));
 
@@ -30,15 +35,20 @@ passport.use(new GoogleStrategy({
     callbackURL: "/api/auth/google/callback"
   },
   function(accessToken, refreshToken, profile, done) {
-    const email = profile.emails[0].value;
-    db.registerOrLoginUser(email, (err, jwtToken) =>{
+    const register_handler = (err, jwtToken) =>{
       if(err){
         logger.error(err);
         return done(err);
       }
       logger.info("strat jwt:", jwtToken)
       return done(null, jwtToken);
-    });
+    };
+    
+    const email = profile.emails[0].value;
+    db.registerOrLoginUser(email, register_handler);
+    // TODO: find a way to determine whether user is opt-in or not
+    // TODO: and then register user as normal user or guest base on that
+    // db.registerGuest(register_handler);
   }
 ));
 

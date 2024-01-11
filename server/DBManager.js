@@ -1,22 +1,20 @@
 const mysql = require("mysql2");
+const JobTable = require('./JobTable.js');
 const uuid = require("uuid");
 const jwt = require('jsonwebtoken');
 const CryptoJS = require("crypto-js");
 
 
-function getUnixTimestampNow() {
-    return Math.floor((new Date()).getTime() / 1000);
-}
-
 class DBManager {
     
-    constructor(db_config, aes_key, jwt_secret, logger) {
+    constructor(db_config, aes_key, jwt_secret, table_config, logger) {
         this.establishedConnection = null;
         this.db = null;
         this.db_config = db_config;
         this.aes_key = aes_key;
         this.jwt_secret = jwt_secret;
         this.logger = logger;
+        this.table = new JobTable(table_config, logger);
         this.connect();
     }
     
@@ -28,7 +26,7 @@ class DBManager {
     connection() {
         return new Promise((resolve, reject) => {
             resolve(mysql.createConnection(this.db_config))
-        })
+        });
     }
     
     dropConnection() {
@@ -57,19 +55,23 @@ class DBManager {
                         return;
                     }
                     else {
-                        that.logger.info(`Connected to database, res.state=${res.state}`);
+                        that.logger.info(`Connected to database`);
                         that.db = res;
                     }
                 })
             });
+            this.table.init().catch((error)=>{
+                that.establishedConnection = false;
+                that.logger.warn(`Unable to initialize JobTable: ${error}`);
+            })
         }
     }
     
     addImage(instrument, image, moon, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
-            this.logger.error(`Did not connect to database`);
-            handler(new Error(`Did not connect to database`), null);
+            this.logger.error(`Did not connect to database or JobTable`);
+            handler(new Error(`Did not connect to database or JobTable`), null);
             return;
         }
         
@@ -164,8 +166,8 @@ class DBManager {
     registerOrLoginUser(user_email, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
-            this.logger.error(`Did not connect to database`);
-            handler(new Error(`Did not connect to database`), null);
+            this.logger.error(`Did not connect to database or JobTable`);
+            handler(new Error(`Did not connect to database or JobTable`), null);
             return;
         }
         
@@ -227,11 +229,30 @@ class DBManager {
         })
     }
     
+    registerGuest(handler)
+    {
+        if (this.establishedConnection == null || this.db == null) {
+            this.logger.error(`Did not connect to database or JobTable`);
+            handler(new Error(`Did not connect to database or JobTable`), null);
+            return;
+        }
+        
+        let session_uuid = uuid.v4();
+        let jwt_output = jwt.sign(
+            {user_id:'sess-'+session_uuid},
+            Buffer.from(this.jwt_secret, 'base64'),
+            {algorithm:"HS256", expiresIn:"1 hours"}
+        );
+        this.logger.debug(`jwt_output: ${jwt_output}`);
+        handler(null, jwt_output)
+        return;
+    }
+    
     verifyUserJWT(user_jwt, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
-            this.logger.error(`Did not connect to database`);
-            handler(new Error(`Did not connect to database`), null);
+            this.logger.error(`Did not connect to database or JobTable`);
+            handler(new Error(`Did not connect to database or JobTable`), null);
             return;
         }
         
@@ -242,27 +263,36 @@ class DBManager {
                 handler(new Error("Invalid JWT"), null);
                 return;
             } else {
-                let get_email = `SELECT user_email FROM Users WHERE user_id = ? AND user_email_md5 = ?;`;
-                let get_email_list = [payload.user_id, payload.hashed_email];
-                this.db.query(get_email, get_email_list, (error, result) => {
-                    this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
-                    this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-                    if (error || result.length < 1) {
-                        handler(new Error("Failed to find user's email by id"), null);
-                        return;
-                    } else {
-                        let encrypted_email = result[0].user_email;
-                        this.logger.debug(`encrypted_email: ${encrypted_email.toString(CryptoJS.enc.Utf8)}`);
-                        let hashed_email = CryptoJS.MD5(encrypted_email).toString();
-                        this.logger.debug(`hashed_email: ${hashed_email}`);
-                        if (hashed_email != payload.hashed_email) {
-                            handler(new Error("User email not matching"), null);
+                // guest user session
+                if (typeof payload.user_id === 'string' && payload.user_id.startsWith('sess-')) {
+                    this.logger.debug(`guest user: ${payload.user_id}`);
+                    handler(null, {ok:true, ...payload, user_type:'guest'});
+                    return;
+                }
+                // normal user
+                else {
+                    let get_email = `SELECT user_email FROM Users WHERE user_id = ? AND user_email_md5 = ?;`;
+                    let get_email_list = [payload.user_id, payload.hashed_email];
+                    this.db.query(get_email, get_email_list, (error, result) => {
+                        this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
+                        this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
+                        if (error || result.length < 1) {
+                            handler(new Error("Failed to find user's email by id"), null);
                             return;
                         } else {
-                            handler(null, true);
+                            let encrypted_email = result[0].user_email;
+                            this.logger.debug(`encrypted_email: ${encrypted_email.toString(CryptoJS.enc.Utf8)}`);
+                            let hashed_email = CryptoJS.MD5(encrypted_email).toString();
+                            this.logger.debug(`hashed_email: ${hashed_email}`);
+                            if (hashed_email != payload.hashed_email) {
+                                handler(new Error("User email not matching"), null);
+                                return;
+                            } else {
+                                handler(null, {ok:true, ...payload, user_type:'normal'});
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         });
     }
@@ -270,32 +300,17 @@ class DBManager {
     registerUploadJob(upload_job_expire, user_id, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
-            this.logger.error(`Did not connect to database`);
-            handler(new Error(`Did not connect to database`), null);
+            this.logger.error(`Did not connect to database or JobTable`);
+            handler(new Error(`Did not connect to database or JobTable`), null);
             return;
         }
         
-        // we use an uuid to identify an upload job
-        // so we can increment "user_upload_count" int inside Users table
-        let upload_uuid = uuid.v4();
-        let now = getUnixTimestampNow();
-        let expires = now + upload_job_expire;
         try {
-            let insert_job = `
-            INSERT INTO UploadJobs
-            VALUES(UUID_TO_BIN(?), ?, ?)
-            ;`
-            let insert_job_list = [upload_uuid, expires, user_id];
-            
-            this.db.query(insert_job, insert_job_list, (error, result) => {
-                this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-                // duplicate uuid
-                if (result == undefined || result.affectedRows <= 0) {
-                    this.logger.warn(`duplicate uuid`);
-                    handler(new Error("Duplicate UUID"), null);
-                } else {
-                    handler(null, {upload_uuid:upload_uuid, expires:expires});
-                }
+            this.table.push(user_id.toString()).then((upload_uuid, expire)=>{
+                handler(null, {upload_uuid:upload_uuid, expires:expire});
+            }).catch((error)=>{
+                this.logger.error(`Unable to push to JobTable: ${error}`);
+                handler(new Error(`Unable to push to JobTable: ${error}`), null);
             });
         } catch (query_error) {
             this.logger.error(`query_error: ${query_error.stack}`);
@@ -306,123 +321,21 @@ class DBManager {
     finishUploadJob(upload_uuid, upload_count, flag_count, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
-            this.logger.error(`Did not connect to database`);
-            handler(new Error(`Did not connect to database`), null);
+            this.logger.error(`Did not connect to database or JobTable`);
+            handler(new Error(`Did not connect to database or JobTable`), null);
             return;
         }
         
         try {
-            let select_job = `SELECT * FROM UploadJobs WHERE uuid = UUID_TO_BIN(?);`;
-            let select_job_list = [upload_uuid];
             let update_user = `UPDATE Users SET user_upload_count = user_upload_count + ?, user_flag_count = user_flag_count + ? WHERE user_id = ?;`;
             
-            this.db.query(select_job, select_job_list, (error, result) => {
-                this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-                this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
-                if (error) {
-                    handler(error, null);
-                    return;
-                }
-                if (result.length == 1) {
-                    this.db.query(`DELETE FROM UploadJobs WHERE uuid = UUID_TO_BIN(?);`, [upload_uuid], (error2, result2) => {
-                        this.logger.debug(`result2: ${JSON.stringify(result2,null,2)}`);
-                        this.logger.debug(`error2: ${JSON.stringify(error2,null,2)}`);
-                        this.db.query(update_user, [upload_count, flag_count, result[0].user_id], handler);
-                    });
-                } else {
-                    handler(new Error("Cannot find upload job uuid"), null);
-                }
-            });
-        } catch (query_error) {
-            this.logger.error(`query_error: ${query_error.stack}`);
-            this.dropConnection();
-        }
-    }
-    
-    registerUserRegistrationJob(job_expire, handler)
-    {
-        if (this.establishedConnection == null || this.db == null) {
-            this.logger.error(`Did not connect to database`);
-            handler(new Error(`Did not connect to database`), null);
-            return;
-        }
-        
-        // we use an uuid to identify a job
-        let job_uuid = uuid.v4();
-        let now = getUnixTimestampNow();
-        let expires = now + job_expire;
-        // AES 256-bit random key
-		let aes_key = CryptoJS.lib.WordArray.random(32);
-		aes_key = aes_key.toString(CryptoJS.enc.Base64);
-        try {
-            let insert_job = `
-            INSERT INTO RegistrationJobs
-            VALUES(UUID_TO_BIN(?), ?, ?)
-            ;`
-            let insert_job_list = [job_uuid, expires, aes_key];
-            
-            this.db.query(insert_job, insert_job_list, (error, result) => {
-                this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-                // duplicate uuid
-                if (result == undefined || result.affectedRows <= 0) {
-                    this.logger.warn(`duplicate uuid`);
-                    handler(new Error("Duplicate UUID"), null);
-                } else {
-                    handler(null, {job_uuid:job_uuid, expires:expires, key:aes_key});
-                }
-            });
-        } catch (query_error) {
-            this.logger.error(`query_error: ${query_error.stack}`);
-            this.dropConnection();
-        }
-    }
-    
-    finishUserRegistrationJob(job_uuid, encrypted_email, handler)
-    {
-        if (this.establishedConnection == null || this.db == null) {
-            this.logger.error(`Did not connect to database`);
-            handler(new Error(`Did not connect to database`), null);
-            return;
-        }
-        
-        try {
-            let select_job = `SELECT * FROM RegistrationJobs WHERE uuid = UUID_TO_BIN(?);`;
-            let select_job_list = [job_uuid];
-            
-            this.db.query(select_job, select_job_list, (error, result) => {
-                this.logger.debug(`result: ${JSON.stringify(result,null,2)}`);
-                this.logger.debug(`error: ${JSON.stringify(error,null,2)}`);
-                if (error) {
-                    handler(error, null);
-                    return;
-                }
-                if (result.length == 1) {
-                    this.db.query(`DELETE FROM RegistrationJobs WHERE uuid = UUID_TO_BIN(?);`, [job_uuid], (error2, result2) => {
-                        this.logger.debug(`result2: ${JSON.stringify(result2,null,2)}`);
-                        this.logger.debug(`error2: ${JSON.stringify(error2,null,2)}`);
-                        if (error2) {
-                            handler(new Error("Failed to finish Registration Job"), null);
-                            return;
-                        }
-                        
-                        // CryptoJS.AES.decrypt takes in base64 string as encrypted text
-                        // so we must not do this: CryptoJS.enc.Base64.parse(encrypted_email)
-                        let decrypted_email = CryptoJS.AES.decrypt(
-                            encrypted_email,
-                            CryptoJS.enc.Base64.parse(result[0].aes_key),
-                            {
-                                mode: CryptoJS.mode.CBC,
-                                padding: CryptoJS.pad.Pkcs7,
-                                iv: CryptoJS.enc.Hex.parse("00000000000000000000000000000000"),
-                            }
-                        ).toString(CryptoJS.enc.Utf8);
-                        this.logger.debug(`decrypted_email: ${decrypted_email}`);
-                        handler(null, {user_email:decrypted_email});
-                    });
-                } else {
-                    handler(new Error("Cannot find upload job uuid"), null);
-                }
-            });
+            this.table.pop(upload_uuid).then((user_id)=>{
+                this.logger.debug(`user_id: ${JSON.stringify(user_id, null, 2)}`);
+                this.db.query(update_user, [upload_count, flag_count, user_id], handler);
+            }).catch((error)=>{
+                this.logger.error(`error: ${error}`);
+                handler(new Error(error), null);
+            })
         } catch (query_error) {
             this.logger.error(`query_error: ${query_error.stack}`);
             this.dropConnection();

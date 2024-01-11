@@ -1,0 +1,20 @@
+version: "3"
+services:
+  
+  your-moon-server:
+    build:
+      context: .
+    image: your-moon-server
+    container_name: your-moon-server
+    restart: unless-stopped
+    volumes:
+      - "./config:/src/config"
+      - "./uploadedImages:/src/uploadedImages"
+      - "./:/src/data"
+    ports:
+      - "3001:3001"
+  
+  your-moon-redis:
+    image: redis
+    container_name: your-moon-redis
+    restart: unless-stopped

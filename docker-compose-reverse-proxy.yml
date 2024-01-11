@@ -12,6 +12,11 @@ services:
       - "./data/server/uploadedImages:/src/uploadedImages"
       - "./data/server:/src/data"
   
+  your-moon-redis:
+    image: redis
+    container_name: your-moon-redis
+    restart: unless-stopped
+  
   your-moon-client:
     build:
       context: client/

@@ -2,7 +2,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import uploadPage from "../views/uploadPage.vue";
 import landingPage from "../views/landingPage.vue";
-// EDIT SJ create contact page and route 
 import contactPage from "../views/contactPage.vue";
 
 import axios from 'axios';

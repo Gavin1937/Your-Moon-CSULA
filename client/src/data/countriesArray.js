@@ -1,6 +1,4 @@
-/* EDIT.SJ change to bolivia, iran, moldova, micronesia etc + remove all (the) 
-Allow inputs of both USA and United States of America
-*/
+
 const countryListAlpha2 = {
   AF: "Afghanistan",
   AL: "Albania",
@@ -42,7 +40,7 @@ const countryListAlpha2 = {
   KH: "Cambodia",
   CM: "Cameroon",
   CA: "Canada",
-  KY: "Cayman Islands s",
+  KY: "Cayman Islands",
   CF: "Central African Republic",
   TD: "Chad",
   CL: "Chile",

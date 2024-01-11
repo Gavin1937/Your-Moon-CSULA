@@ -88,7 +88,6 @@ function onEnter() {
   </div>
 </template>
 <style>
-/* EDIT.SJ, create header above the input box, not inline */
 .labelHeader{
   display:flex;
   flex-direction:column;

@@ -84,7 +84,6 @@ body, html {
 }
 
 .the-content {
-  /* EDITSJ remove: float: left; to not overlap*/
   width: 100%;
 }
 
@@ -94,7 +93,6 @@ body, html {
   padding-right: 30px;
   color: #ffff;
   background: #212529;
-  /* EDITSJ make width 100%, no horisontal scroll */
   width: 100%;
 }
 
@@ -131,7 +129,6 @@ p {
 .moon_img {
   display: block;
   margin: 0 auto; 
-  /* EDITSJ make width 100%, no horisontal scroll */
   max-width: 100%;
 }
 

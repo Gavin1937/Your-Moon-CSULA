@@ -455,7 +455,6 @@ async function uploadCroppedImage() {
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
-        <!--EDIT.SJ included class inputFile to change color of text -->
         <input 
           class="inputFile"
           type="file"
@@ -572,7 +571,6 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Date </label>
                       <div class="control">
-                        <!-- EDIT.SJ make max data, limits to 4 characters-->
                         <input 
                           class="input"
                           type="date"
@@ -644,7 +642,7 @@ async function uploadCroppedImage() {
             </button>
 
 
-            <!--EDIT.SJ
+            <!--Remove duplicate error message.
             <div
               class="status-message"
               v-if="fileSizeExceeded || !isValidFileType || invalidCoords"
@@ -652,7 +650,7 @@ async function uploadCroppedImage() {
             --> 
             <div class="status-message">
               {{ data.message }}
-              <!--EDIT.SJ  <p class="status-message">
+              <!--  <p class="status-message">
                 {{ data.message }}
               </p> -->
             </div>
@@ -680,7 +678,7 @@ async function uploadCroppedImage() {
 .autocomplete {
   position: relative;
 }
-/* EDIT.SJ Remove. this is duplicate code from city/country autocomplete.vue
+/*  Remove. duplicate code from city/country autocomplete.vue
 .autocomplete-results {
   padding: 0;
   margin: 0;
@@ -691,7 +689,6 @@ async function uploadCroppedImage() {
   overflow: auto;
 }
 */
-/* EDIT.SJ makes the filename visible, not blue */
 .inputFile{
   color: white; 
 

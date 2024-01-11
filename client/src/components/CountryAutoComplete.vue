@@ -84,7 +84,6 @@ function onEnter() {
   </div>
 </template>
 <style>
-/* EDIT.SJ, place label header above the input box, not inline */
 .labelHeader{
   display:flex;
   flex-direction:column;
@@ -94,7 +93,6 @@ function onEnter() {
   position: relative;
 }
 
-/* EDIT.SJ, height is auto + width same as input field */
 .autocomplete-results {
   padding: 0;
   margin: 0;
@@ -106,7 +104,6 @@ function onEnter() {
   overflow: auto;
 }
 
-/* EDIT.SJ, make font smaller, width 100% */
 .autocomplete-result {
   list-style: none;
   text-align: left;

@@ -65,7 +65,7 @@ function onEnter() {
 
 <template>
   <div class="autocomplete">
-    <label>Nearest City</label>
+    <label class="labelHeader">Nearest City</label>
     <input
       type="text"
       v-model="state.inputValue"
@@ -88,6 +88,11 @@ function onEnter() {
   </div>
 </template>
 <style>
+.labelHeader{
+  display:flex;
+  flex-direction:column;
+}
+
 .autocomplete {
   position: relative;
 }

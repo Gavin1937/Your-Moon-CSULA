@@ -2,12 +2,14 @@
 import { createRouter, createWebHistory } from "vue-router";
 import uploadPage from "../views/uploadPage.vue";
 import landingPage from "../views/landingPage.vue";
+import contactPage from "../views/contactPage.vue";
 
 import axios from 'axios';
 import config from "../../config/config.json";
 const routes = [
     {path: '/upload', name: 'Upload', component: uploadPage, meta:{requiresAuth:false}},
-    {path: '/', name: 'LandingPage', component: landingPage}
+    {path: '/', name: 'LandingPage', component: landingPage},
+    {path: '/contact', name: 'ContactPage', component: contactPage}
 ]
 
 const isAuthenticated = async () => {

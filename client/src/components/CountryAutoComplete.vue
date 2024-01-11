@@ -61,7 +61,7 @@ function onEnter() {
 </script>
 <template>
   <div class="autocomplete">
-    <label>Country</label>
+    <label class="labelHeader">Country</label>
     <input
       type="text"
       v-model="state.inputValue"
@@ -84,6 +84,11 @@ function onEnter() {
   </div>
 </template>
 <style>
+.labelHeader{
+  display:flex;
+  flex-direction:column;
+}
+
 .autocomplete {
   position: relative;
 }
@@ -92,9 +97,10 @@ function onEnter() {
   padding: 0;
   margin: 0;
   border: 1px solid #eeeeee;
-  height: 120px;
+  height: auto;
+  width: 246px;
   min-height: 1em;
-  max-height: 6em;
+  max-height: 10em;
   overflow: auto;
 }
 
@@ -103,6 +109,9 @@ function onEnter() {
   text-align: left;
   padding: 4px 2px;
   cursor: pointer;
+  font-size: .8em;
+  width:100%;
+  height: auto;
 }
 .autocomplete-result.is-active,
 .autocomplete-result:hover {

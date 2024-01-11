@@ -63,7 +63,8 @@ function updateCityName(params) {
 function updateCountryCode(params) {
   //O(n) of 249 size array
   const foundCountry = countriesArray.find(
-    (country) => country.name === params
+    // use fuzzy search instead
+    (country) => country.name.toUpperCase().includes(params.toUpperCase())
   );
   const countryCode = foundCountry ? foundCountry.code : null;
   data.countryCode = countryCode;

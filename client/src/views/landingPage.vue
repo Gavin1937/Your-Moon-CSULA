@@ -32,8 +32,13 @@ function toggleExpand() {
 
           <h1>What is YourMoon?</h1>
           <p>YourMoon is a vital component of an ongoing Capstone Senior Design project, a 
-          collaborative effort between NASA's JPL and California State University, Los Angeles (CSULA). The primary objective is to create a user-friendly interface for <a href='https://trek.nasa.gov/moon/'>Moon Trek</a>, a powerful NASA tool empowering users to delve into the mysteries of the lunar by offering user-friendly tools that simplify browsing, data layering, and detailed feature searches. YourMoon invites users to contribute their Moon images and utilize NASA JPL's MoonTrek data, aiding the 'MoonTrek AR' team in their data collection endeavors. The metadata provided by users is kept anonymous and used strictly for research purposes.</p>
-          <p><img src="../assets/moon_overlay.png" alt="moon" class="moon_img"></p>
+          collaborative effort between NASA's JPL and California State University, Los Angeles (CSULA). 
+          The primary objective is to create a user-friendly interface for <a target="_blank" href='https://trek.nasa.gov/moon/'>Moon Trek</a>, 
+          a powerful NASA tool empowering users to delve into the mysteries of the lunar by 
+          offering user-friendly tools that simplify browsing, data layering, and detailed feature searches. 
+          YourMoon invites users to contribute their Moon images and utilize NASA JPL's MoonTrek data, aiding the 'MoonTrek AR' team 
+          in their data collection endeavors. The metadata provided by users is kept anonymous and used strictly for research purposes.</p>
+          <p class="moonImageContainer"><img src="../assets/moon_overlay.png" alt="moon" class="moon_img"></p>
         </div>
 
         <!-- RightHand Column -->
@@ -79,7 +84,7 @@ body, html {
 }
 
 .the-content {
-  float: left;
+  /* EDITSJ remove: float: left; to not overlap*/
   width: 100%;
 }
 
@@ -89,6 +94,8 @@ body, html {
   padding-right: 30px;
   color: #ffff;
   background: #212529;
+  /* EDITSJ make width 100%, no horisontal scroll */
+  width: 100%;
 }
 
 .upload h4 {
@@ -123,6 +130,13 @@ p {
 
 .moon_img {
   display: block;
-  margin: 0 auto;
+  margin: 0 auto; 
+  /* EDITSJ make width 100%, no horisontal scroll */
+  max-width: 100%;
 }
+
+
+
+
+
 </style>

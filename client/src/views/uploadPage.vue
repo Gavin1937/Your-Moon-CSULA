@@ -455,7 +455,9 @@ async function uploadCroppedImage() {
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
-        <input
+        <!--EDIT.SJ included class inputFile to change color of text -->
+        <input 
+          class="inputFile"
           type="file"
           accept=".jpg,.png,.webp,.bmp,.jpeg"
           ref="lunarImage"
@@ -570,9 +572,11 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Date </label>
                       <div class="control">
-                        <input
+                        <!-- EDIT.SJ make max data, limits to 4 characters-->
+                        <input 
                           class="input"
                           type="date"
+                          max="9999-12-31"
                           v-model="data.date"
                           required
                         />
@@ -639,14 +643,18 @@ async function uploadCroppedImage() {
               Upload
             </button>
 
+
+            <!--EDIT.SJ
             <div
               class="status-message"
               v-if="fileSizeExceeded || !isValidFileType || invalidCoords"
             >
+            --> 
+            <div class="status-message">
               {{ data.message }}
-              <p class="status-message">
+              <!--EDIT.SJ  <p class="status-message">
                 {{ data.message }}
-              </p>
+              </p> -->
             </div>
           </div>
         </div>
@@ -672,7 +680,7 @@ async function uploadCroppedImage() {
 .autocomplete {
   position: relative;
 }
-
+/* EDIT.SJ Remove. this is duplicate code from city/country autocomplete.vue
 .autocomplete-results {
   padding: 0;
   margin: 0;
@@ -682,7 +690,12 @@ async function uploadCroppedImage() {
   max-height: 6em;
   overflow: auto;
 }
+*/
+/* EDIT.SJ makes the filename visible, not blue */
+.inputFile{
+  color: white; 
 
+}
 .autocomplete-result {
   list-style: none;
   text-align: left;

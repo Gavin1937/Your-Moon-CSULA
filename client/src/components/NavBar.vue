@@ -10,7 +10,7 @@ const toggleBurger = () => {
 
 <template>
   <nav class="navbar navbar-expand-lg">
-    <a href="#" class="navbar-brand">
+    <a href="/" class="navbar-brand">
       <img src="../assets/moon_phase.gif" alt="moon gif" style="max-height: 70px; margin-right: 8px;">
       <span class="brand-your" style="color: #ffb703;">Your</span>
       <span class="brand-moon" style="color: #fefae0;">Moon</span>
@@ -30,7 +30,7 @@ const toggleBurger = () => {
           <a class="nav-link" href="/upload">Upload</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#">Contact</a>
+          <a class="nav-link" href="/contact">Contact</a>
         </li>
       </ul>
     </div>

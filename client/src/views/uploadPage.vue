@@ -398,7 +398,10 @@ async function uploadCroppedImage() {
         img_altitude: Number.parseFloat(data.altitude),
         img_longitude: Number.parseFloat(data.longitude),
         img_latitude: Number.parseFloat(data.latitude),
-        img_timestamp: Math.floor(new Date().getTime() / 1000), // TODO: derive image's original unix timestamp when taken from geolocation & datetime
+        // TODO: derive image's original unix timestamp when taken from geolocation & datetime
+        // https://www.npmjs.com/package/geo-tz
+        // this should be handle by the server
+        img_timestamp: Math.floor(new Date().getTime() / 1000),
       },
       moon: {
         moon_detect_flag: 1,

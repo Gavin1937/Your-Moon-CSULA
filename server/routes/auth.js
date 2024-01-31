@@ -23,7 +23,7 @@ router.get('/google/callback',
       secure: true,
       maxAge: 2 * 24 * 60 * 60 * 1000 
     });
-    res.redirect(config.cors_origin_whitelist+'/upload'); 
+    res.redirect(config.cors_origin_whitelist[0]+'/upload'); 
   }
 );
 
@@ -40,7 +40,7 @@ router.get("/github/callback",
         secure: true,
         maxAge: 2 * 24 * 60 * 60 * 1000 
     });
-    res.redirect(config.cors_origin_whitelist+'/upload'); 
+    res.redirect(config.cors_origin_whitelist[0]+'/upload'); 
     }
 );
 

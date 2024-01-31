@@ -2,12 +2,14 @@
 import { createRouter, createWebHistory } from "vue-router";
 import uploadPage from "../views/uploadPage.vue";
 import landingPage from "../views/landingPage.vue";
+import contactPage from "../views/contactPage.vue";
 
 import axios from 'axios';
 import config from "../../config/config.json";
 const routes = [
-    {path: '/upload', name: 'Upload', component: uploadPage, meta:{requiresAuth:true}},
-    {path: '/', name: 'LandingPage', component: landingPage}
+    {path: '/upload', name: 'Upload', component: uploadPage, meta:{requiresAuth:false}},
+    {path: '/', name: 'LandingPage', component: landingPage},
+    {path: '/contact', name: 'ContactPage', component: contactPage}
 ]
 
 const isAuthenticated = async () => {
@@ -15,21 +17,15 @@ const isAuthenticated = async () => {
     const res = await axios.get(config.backend_url + '/api/verifyUser', {
       withCredentials: true
     });
-
-    if (res.status === 200) {
-      console.log('Call succeeded');
-      return true;
-    } else {
-      console.error('Failed to check authentication');
-      return false;
-    }
-
+    
+    return (res.status === 200 && res.data.verified);
+    
   } catch (error) {
     console.error('Failed to check authentication', error);
     return false;
   }
 };
-  
+
 
 
 
@@ -39,20 +35,23 @@ const router = createRouter({
 })
 
 
-// router.beforeEach(async (to, from, next) => {
-//   if (to.matched.some(record => record.meta.requiresAuth)) {
-//     const authenticated = await isAuthenticated();
-//     if (!authenticated) {
-//       next({
-//         path: '/',
-//         query: { redirect: to.fullPath }
-//       });
-//     } else {
-//       next();
-//     }
-//   } else {
-//     next(); 
-//   }
-// });
+router.beforeEach(async (to, from, next) => {
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      console.log('Bad authentication');
+      next({
+        path: '/',
+        query: { redirect: to.fullPath }
+      });
+    } else {
+      console.log('Good authentication');
+      next();
+    }
+  } else {
+    console.log('No authentication needed');
+    next(); 
+  }
+});
 export default router
 

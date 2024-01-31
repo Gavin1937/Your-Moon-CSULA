@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue';
-import { RouterLink } from 'vue-router';
 
 const isBurgerActive = ref(false);
 
@@ -10,69 +9,72 @@ const toggleBurger = () => {
 </script>
 
 <template>
-  <header>
-    <nav class="navbar">
-      <div class="navbar-brand">
-        <img src="../assets/yourmoon_circle.png" alt="logo" style="max-height: 80px"/>
-        <a class="navbar-item is-flex is-align-items-center">
-          <h1 class="your-text">Your</h1><h1 class="moon-text">Moon</h1>
-        </a>
-        <a @click="toggleBurger" class="navbar-burger is-size-6" :class="{ 'is-active': isBurgerActive }">
-          <span></span>
-          <span></span>
-          <span></span>
-        </a>
-      </div>
+  <nav class="navbar navbar-expand-lg">
+    <a href="/" class="navbar-brand">
+      <img src="../assets/moon_phase.gif" alt="moon gif" style="max-height: 70px; margin-right: 8px;">
+      <span class="brand-your" style="color: #ffb703;">Your</span>
+      <span class="brand-moon" style="color: #fefae0;">Moon</span>
+    </a>
 
-      <div :class="{ 'is-active': isBurgerActive }" class="navbar-menu is-size-5 has-text-centered" id="nav-links">
-        <div class="navbar-end">
-          <RouterLink class="navbar-item is-warning" to="/" @click="toggleBurger">Home</RouterLink>
-          <RouterLink class="navbar-item is-warning" to="/upload" @click="toggleBurger"> Upload</RouterLink>
-        </div>
-      </div>
-    </nav>
-  </header>
+    <button class="navbar-toggler" @click="toggleBurger" :class="{ 'is-active': isBurgerActive }">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </button>
+    <div :class="{ 'show': isBurgerActive }" class="collapse navbar-collapse justify-content-end" id="navbar-collapse">
+      <ul class="nav navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/upload">Upload</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/contact">Contact</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
 </template>
 
-<style>
+<style scoped>
 .navbar {
-  background-color: #050608; 
+  background-color: #001219;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  color: #ffffff; 
 }
 .navbar-brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding-left: 25px;
+  font-family: 'Quicksand', monospace;
+  justify-content: flex;
+  align-items: center; 
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-  padding-left: 20px;
 }
-.navbar-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-  text-decoration: none;
+.brand-your {
+  font-weight: bold;
 }
-.navbar-burger {
-  size: 10px;
+.brand-moon {
+  font-weight: bold;
 }
-.your-text {
-  color: #fdba37;
-  text-decoration: none; 
+.navbar-toggler {
+  border: none; 
+  background-color: transparent;
+  color: #ffb703; 
 }
-.moon-text {
-  color: #ffffff;
-  text-decoration: none; 
+.nav-link {
+  color: #ffb703;
+  font-size: 1.0rem;
+  font-weight: bold;
+  font-family: 'Quicksand', monospace;
 }
-.navbar-item:hover {
-  background-color: #645394;
-  color: #ffffff;
-}
-.navbar-item:active {
-  background-color: #645394;
-  color: #ffffff;
-}
-.navbar-item:focus {
-  background-color: #645394;
-  color: #ffffff;
+.icon-bar {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background-color: #ffb703;
+  margin: 4px 0;
 }
 </style>

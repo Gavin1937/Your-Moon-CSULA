@@ -37,7 +37,7 @@ def encrypt_utf8(utf8_data:str, b64_key:str, output_as_b64:bool=False):
 
 def main():
     
-    print('This utility will help you to create a normal user account in the system without the backend.')
+    print('This utility will help you to create a normal user account in the system without the backend.\n')
     
     aes_key = input('1) What is the "aes_key" in the backend config:\n')
     jwt_secret = b64decode(input('\n2) What is the "jwt_secret" in the backend config:\n'))
@@ -48,8 +48,8 @@ def main():
     insert_sql = f'INSERT INTO YourMoonDB.Users(user_email, user_email_md5) VALUES("{user_email}", "{user_email_md5}");'
     select_sql = f'SELECT user_id FROM YourMoonDB.Users WHERE user_email_md5 = "{user_email_md5}";'
     
-    print(f'\nNow, you can connect to the database and enter following sql:\n\n{insert_sql}\n{select_sql}\n')
-    user_id = int(input('What is the user_id you get? '))
+    print(f'\n4) Now, you can connect to the database and enter following sql:\n\n{insert_sql}\n{select_sql}\n')
+    user_id = int(input('5) What is the user_id you get? '))
     
     
     output_jwt = jwt.encode(
@@ -60,7 +60,9 @@ def main():
         jwt_secret,
         algorithm="HS256"
     )
-    print(f'Here is your JWT for the frontend:\n\n{output_jwt}\n')
+    output_js = f'document.cookie = "token={output_jwt}";'
+    print(f'\n* Here is your JWT token for the frontend:\n\n{output_jwt}\n')
+    print(f'* Here is how you can set JWT token with JavaScript:\n\n{output_js}\n')
 
 
 if __name__ == '__main__':

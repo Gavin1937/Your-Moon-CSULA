@@ -37,7 +37,7 @@ def encrypt_utf8(utf8_data:str, b64_key:str, output_as_b64:bool=False):
 
 def main():
     
-    print('This utility will help you to create a guest user account in the system without the backend.')
+    print('This utility will help you to create a guest user account in the system without the backend.\n')
     
     user_id = 'sess-'+str(uuid.uuid4())
     jwt_secret = b64decode(input('1) What is the "jwt_secret" in the backend config:\n'))
@@ -50,7 +50,9 @@ def main():
         jwt_secret,
         algorithm="HS256"
     )
-    print(f'Here is your JWT for the frontend:\n\n{output_jwt}\n')
+    output_js = f'document.cookie = "token={output_jwt}";'
+    print(f'\n* Here is your JWT token for the frontend:\n\n{output_jwt}\n')
+    print(f'* Here is how you can set JWT token with JavaScript:\n\n{output_js}\n')
 
 
 if __name__ == '__main__':

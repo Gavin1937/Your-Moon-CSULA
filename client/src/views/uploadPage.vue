@@ -5,7 +5,7 @@ import "cropperjs/dist/cropper.css";
 import CryptoJS from "crypto-js";
 import axios from "axios";
 import ExifReader from "exifreader";
-import { ref, reactive } from "vue";
+import { ref, reactive, onBeforeMount, onMounted } from "vue";
 import MoonRegistration from "../moon-registration";
 import config from "../../config/config.json";
 import { nearestCity } from "cityjs";
@@ -13,9 +13,12 @@ import citiesArray from "@/data/arrays.js";
 import countriesArray from "@/data/countriesArray.js";
 import CityAutoComplete from "../components/CityAutoComplete.vue";
 import CountryAutoComplete from "../components/CountryAutoComplete.vue";
+import { jwtDecode } from "jwt-decode";
+import { useAuthStore } from "@/stores/authStore.js"
 // This is the ref to the cropper DOM element
-const cropr = ref(null);
 
+const cropr = ref(null);
+const auth = useAuthStore()
 let data = reactive({
   // "META DATA"
   image: "",
@@ -55,6 +58,22 @@ let data = reactive({
   croppedImage: null,
   mapReady: false,
 });
+
+onBeforeMount(checkUserType)
+function checkUserType(){
+    const token = document.cookie.split('=')[1]
+    if(token){
+      const user = jwtDecode(token);
+      auth.isAuthenticated = true
+      // console.log(user.user_id)
+      // console.log("user_id starts with 'sess'", user.user_id.startsWith("sess"))
+      console.log(user.user_id)
+      console.log(typeof(user.user_id))
+      
+      if(typeof(user.user_id) === 'number') auth.userType = "normal"
+      else if(user.user_id.includes("sess")) auth.userType = "guest"
+    }
+}
 
 function updateCityName(params) {
   data.nearestCity = params;
@@ -238,7 +257,7 @@ function checkFileType(file) {
 }
 
 async function onFileChange(e) {
-  console.log(countriesArray);
+  
   const files = e.target.files;
   if (files.length > 0) {
     data.file = files[0];
@@ -267,7 +286,7 @@ async function onFileChange(e) {
             data.imageHash = CryptoJS.MD5(
               CryptoJS.enc.Base64.parse(b64content)
             ).toString();
-            console.log(data.imageHash);
+            // console.log(data.imageHash);
           };
           reader.readAsDataURL(data.file);
           RunDetectMoon(data.file);
@@ -457,6 +476,7 @@ async function uploadCroppedImage() {
       class="container content-block d-flex justify-content-center align-items-center"
     >
       <div class="padding1">
+     
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
         <input 

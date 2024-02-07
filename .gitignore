@@ -10,3 +10,7 @@
 /**/__pycache__
 /**/.venv
 /data
+client/package.json
+client/config/config.json.template
+server/config/dev.config.json.template
+server/tempCodeRunnerFile.js

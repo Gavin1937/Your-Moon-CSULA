@@ -16,9 +16,10 @@ var db = new DBManager(config.db, config.aes_key, config.jwt_secret, config.jobt
 const upload = require('./multerSetup.js')(process.env.STORAGE_METHOD, config, logger);
 const CryptoJS = require("crypto-js");
 const passport = require("./passport.js")(config.oauth, db, logger);
+const authRoutes = require("./routes/auth.js")(db, logger)
 const session = require('express-session');
 const { rateLimit } = require('express-rate-limit');
-const authRoutes = require("./routes/auth");
+// const authRoutes = require("./routes/auth");
 
 
 // parse application/x-www-form-urlencoded

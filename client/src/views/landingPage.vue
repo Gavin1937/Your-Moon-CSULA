@@ -1,17 +1,20 @@
 <script setup>
 import config from "../../config/config.json";
 import { ref } from 'vue';
+import { useAuthStore } from "@/stores/authStore.js"
 
 const isExpanded = ref(false);
+const isOptIn = ref(false);
+const auth = useAuthStore();
 
-// async function google() {
-//   window.open(config.backend_url + "/api/auth/google", "_self");
-// }
+async function google() {
+  window.open(config.backend_url + `/api/auth/google?isOptIn=${isOptIn.value}`, "_self");
+}
 
-// OAUTH 2.0 not implemented yet
-// async function github() {
-//   window.open(config.backend_url + "/api/auth/github", "_self");
-// }
+
+async function github() {
+  window.open(config.backend_url + `/api/auth/github?isOptIn=${isOptIn.value}`, "_self");
+}
 
 function toggleExpand() {
   isExpanded.value = !isExpanded.value;
@@ -44,13 +47,16 @@ function toggleExpand() {
         <!-- RightHand Column -->
         <div class="col-xs-6 col-md-4">
           <!-- Upload Card -->
-          <div class="card">
+          <div v-if="!auth.isAuthenticated" class="card">
             <div class="card-header text-left">
               UPLOAD YOUR MOON
             </div> 
-            <div class="card-body d-flex justify-content-center align-items-center flex-column">
+            <div  class="card-body d-flex justify-content-center align-items-center flex-column">
               <p class="card-text">For enhanced security measures, we kindly ask you to log in using your preferred email address. This ensures a secure interaction for both you and our system. Thank you.</p>
-              <button type="button" class="btn btn-secondary mt-1 btn-md btn-block btn-warning" @click="google">Sign in with Email</button>
+              <button type="button" class="btn btn-secondary mt-1 btn-md btn-block btn-warning" @click="google">Sign in with Google</button>
+              <button type="button" class="btn btn-secondary mt-1 btn-md btn-block btn-warning" @click="github">Sign in with GitHub</button>
+              <input type="checkbox" id="isOptIn" v-model="isOptIn">
+              <label for="isOptIn">Opt in to receive future emails on the project</label>
             </div>
           </div>
 

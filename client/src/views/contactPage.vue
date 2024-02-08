@@ -3,29 +3,35 @@
     <div class="container">
       <div class="screen">
         <div class="card mt-4">
-          <div class="card-header text-center">Contact us</div>
+          <div class="card-header text-center">Contact us </div>
           <div
             class="card-body d-flex justify-content-center align-items-center flex-column"
           ></div>
 
           <div class="contact-form">
-            <div class="contact-form-group">
+            <!-- <div class="contact-form-group">
               <input class="contact-form-edit" placeholder="name" />
-            </div>
-            <div class="contact-form-group">
+            </div> -->
+            <!-- <div class="contact-form-group">
               <input class="contact-form-edit email" placeholder="Email" />
-            </div>
+            </div> -->
             <div class="contact-form-group message">
               <textarea
+                id="message"
+                v-model="message"
                 class="contact-form-edit-message"
                 placeholder="Message"
-                rows="5"
-                cols="30"
+                rows="10"
+                cols="20"
               ></textarea>
             </div>
             <div class="contact-form-group buttons">
-              <button class="contact-form-button">Cancel</button>
-              <button class="contact-form-button">Send</button>
+              <button @click="clearMessage" class="contact-form-button">
+                Cancel
+              </button>
+              <button @click="sendMessage" class="contact-form-button">
+                Send
+              </button>
             </div>
           </div>
         </div>
@@ -33,6 +39,28 @@
     </div>
   </body>
 </template>
+<script>
+export default {
+  data() {
+    return {
+      message: "",
+    };
+  },
+  methods: {
+    sendMessage() {
+      const email = "moontrek@gmail.com"; // Replace with actual moontrek email
+      const subject = "Message from Contact form";
+      const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(
+        subject
+      )}&body=${encodeURIComponent(this.message)}`;
+      window.open(mailtoUrl, "_blank");
+    },
+    clearMessage() {
+      this.message = "";
+    },
+  },
+};
+</script>
 
 <style scoped>
 body,
@@ -70,19 +98,19 @@ p {
   text-align: center;
 }
 
-.contact-form-edit.email{
-    text-transform: inherit;
+.contact-form-edit.email {
+  text-transform: inherit;
 }
 .contact-form-group.message {
   margin-top: 40px;
 }
 .contact-form-group.buttons {
   margin-bottom: 0;
-  text-align:center;
+  text-align: center;
 }
 
 .contact-form-edit-message {
-  width: 30%;
+  width: 90%;
   padding: 10px;
   background: none;
   font-size: 16px;

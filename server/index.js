@@ -106,7 +106,7 @@ app.post("/api/picUpload", uploadHandler((req, res) => { // pass upload & db han
             logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
 				logger.error(`error:\n${error}`);
-				res.status(400).json({
+				res.status(401).json({
 					status: "VERIFY FAILED ! ❌",
 					message: error.toString(),
 				});
@@ -192,7 +192,7 @@ app.post("/api/picMetadata", (req, res) => {
             logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
 				logger.error(`error:\n${error}`);
-				res.status(400).json({
+				res.status(401).json({
 					status: "VERIFY FAILED ! ❌",
 					message: error.toString(),
 				});
@@ -257,7 +257,7 @@ app.get("/api/verifyUser", (req, res) => {
             logger.debug(`error: ${JSON.stringify(error,null,2)}`);
 			if (error) {
 				logger.error(`error:\n${error}`);
-				res.status(400).json({
+				res.status(401).json({
 					status: "VERIFY FAILED ! ❌",
 					message: error.toString(),
 				});

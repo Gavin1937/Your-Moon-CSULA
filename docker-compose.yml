@@ -15,7 +15,9 @@ services:
       - "3001:3001"
   
   your-moon-redis:
-    image: redis
+    build:
+      context: redis/
+      dockerfile: Dockerfile
     container_name: your-moon-redis
     restart: unless-stopped
   

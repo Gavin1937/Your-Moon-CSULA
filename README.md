@@ -66,6 +66,8 @@ Assuming you are in the root directory of this repository
    3. this file will tell docker-compose which port to expose for the entire app
    4. you can use file `.env.template` as your starting point
 
+> Note that, if you want to run Redis server with a username and password, you can modify `docker-compose.yml` or `docker-compose-reverse-proxy.yml` file, so `your-moon-redis -> build -> dockerfile` is set to `Dockerfile_user`. And you also need to [configure a redis.conf file](./redis/README.md) with the username and password you want.
+
 
 ### Deploy Entire App with Docker Compose
 
@@ -104,3 +106,7 @@ docker-compose -f docker-compose-reverse-proxy.yml build --no-cache
 ## DATABASE
 
 [Refer to this document](./db/README.md)
+
+## About Docker Network
+
+[Refer to this document](./DockerNetwork.md)

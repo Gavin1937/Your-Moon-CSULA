@@ -121,17 +121,13 @@ run following command to deploy with docker
 docker build -t your-moon-server .
 ```
 
-2. [Optional] then, setup redis server
+2. [Optional] then, [setup redis server](../redis/README.md)
 
-```sh
-docker run -d --name your-moon-redis -p 6379:6379 redis
-```
+> Note that, this step is `Optional` because you can configure `jobtable.type` to `native`, its easier for developing only the backend
 
-> Note that, we expose port `6379` here for ease of development. In production, you shouldn't expose redis port and should configure backend's jobtable host as `your-moon-redis` so it can find redis inside docker network
+> Note that, if both server and redis server is running inside docker containers, you need to [configure docker network](../DockerNetwork.md). Otherwise they cannot find each other.
 
-> Also note that, this step is `Optional` because you can configure `jobtable.type` to `native`, its easier for developing only the backend
-
-1. next, run docker container with following command
+3. next, run docker container with following command
 
 ```sh
 docker run -it --rm --name your-moon-server -p 3001:3001 -v "$(pwd)/config:/src/config" -v "$(pwd)/uploadedImages:/src/uploadedImages" your-moon-server

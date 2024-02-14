@@ -47,6 +47,8 @@ app.use(
     ),
     resave: false,
     saveUninitialized: false,
+    // TODO: change this for production
+    // https://stackoverflow.com/a/40324493
     cookie: { secure: false },
   })
 );
@@ -314,7 +316,7 @@ app.get("/api/verifyUser", (req, res) => {
 //! For now, lets disable this endpoint in production
 if (process.env.NODE_ENV !== "production") {
   // Authenticate or Register User
-  // This endpoint can handle both normal user and guest user
+  // This endpoint can handle both regular user and guest user
   // Just add a new field `{"guest_user":true}` to the request body
   // and you will register as a guest
   app.post("/api/authUser", (req, res) => {

@@ -26,6 +26,7 @@
     "session_key": "Base64_random_bytes_for_express_session_secret",
     "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
     "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
+    "frontend_url": "http://localhost:5173", // Do not add trailing "/" to the url.
     "cors_origin_whitelist": [
         "http://localhost:5173"
     ],
@@ -76,6 +77,10 @@ print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8')
 ```
 
 * Also Note that `aes_key` is the key used for encrypt email, if you lost it, you cannot decrypt emails in the database anymore.
+
+* `frontend_url` field is a string url of the frontend, this is here because we don't want to missuse `cors_origin_whitelist` list. **Do not add trailing "/" to the url.**
+  * **Note that, this field is not required when deploying the app with reverse proxy**
+  * Set this field to `null` if you don't need it
 
 * `cors_origin_whitelist` field is a list of urls to the the frontend, they are whitelist for cors cross origin protection. This is because we need to send credentials (cookie) from the frontend to backend.
 

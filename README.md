@@ -43,6 +43,7 @@ mkdir -p data/server/uploadedImages
    * **Note that you should set the path of `log_file` to `/src/data/your-moon-server.log`, so server's log file can be put under `data/server`**
    * **Also Note that docker container will only accept `production.config.json` file, so be sure you create the right one**
    * You can use [./server/config/production.config.json.docker](./server/config/production.config.json.docker) as your starting point
+   * **Be carefull about "frontend_url" field in the config file, you cannot use this field if deploying with reverse proxy**
 
 
 ## Deploy with Docker Compose (recommend)

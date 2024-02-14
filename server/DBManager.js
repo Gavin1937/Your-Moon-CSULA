@@ -336,7 +336,7 @@ class DBManager {
         }
     }
     
-    finishUploadJob(upload_uuid, upload_count, flag_count, handler)
+    finishUploadJob(is_guest_user, upload_uuid, upload_count, flag_count, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
             this.logger.error(`Did not connect to database or JobTable`);
@@ -344,19 +344,23 @@ class DBManager {
             return;
         }
         
-        try {
-            let update_user = `UPDATE Users SET user_upload_count = user_upload_count + ?, user_flag_count = user_flag_count + ? WHERE user_id = ?;`;
-            
-            this.table.pop(upload_uuid).then((user_id)=>{
-                this.logger.debug(`user_id: ${JSON.stringify(user_id, null, 2)}`);
-                this.db.query(update_user, [upload_count, flag_count, user_id], handler);
-            }).catch((error)=>{
-                this.logger.error(`error: ${error}`);
-                handler(new Error(error), null);
-            })
-        } catch (query_error) {
-            this.logger.error(`query_error: ${query_error.stack}`);
-            this.dropConnection();
+        if (!is_guest_user) { // regular user
+            try {
+                let update_user = `UPDATE Users SET user_upload_count = user_upload_count + ?, user_flag_count = user_flag_count + ? WHERE user_id = ?;`;
+                
+                this.table.pop(upload_uuid).then((user_id)=>{
+                    this.logger.debug(`user_id: ${JSON.stringify(user_id, null, 2)}`);
+                    this.db.query(update_user, [upload_count, flag_count, user_id], handler);
+                }).catch((error)=>{
+                    this.logger.error(`error: ${error}`);
+                    handler(new Error(error), null);
+                })
+            } catch (query_error) {
+                this.logger.error(`query_error: ${query_error.stack}`);
+                this.dropConnection();
+            }
+        } else {
+            handler(null, null);
         }
     }
     

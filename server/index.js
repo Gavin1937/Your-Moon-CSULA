@@ -138,6 +138,8 @@ app.post(
           });
         } else {
           logger.info("VERIFIED USER!");
+          const is_guest_user = (result.user_type === 'guest');
+          logger.debug(`is_guest_user: ${is_guest_user}`);
           const imgFile = req.file; // gets the file that is uploaded from the client
           logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`); // testing purposes to see some info of the file
 
@@ -163,7 +165,7 @@ app.post(
           logger.debug(`path: ${path}`);
 
           // rm job from the queue
-          db.finishUploadJob(upload_uuid, 1, 0, (error2, result2) => {
+          db.finishUploadJob(is_guest_user, upload_uuid, 1, 0, (error2, result2) => {
             if (error2) {
               logger.error("THERE HAS BEEN AN ERROR UPLOADING THE IMAGE!");
               logger.error(`error2:\n${error2.toString()}`);

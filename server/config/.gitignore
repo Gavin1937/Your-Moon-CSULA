@@ -1,3 +1,9 @@
 # ignore all file & folder
-./*
-./**/
+*
+*.json
+*.bak
+**/
+
+# white list
+!*.template
+!*.docker

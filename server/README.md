@@ -92,6 +92,7 @@ print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8')
 
 * `jobtable` field tells the backend where to save its temporary cache data. The most important item is `type`, which can be either `redis` or `native`. The backend will use Redis server or JavaScript Object as its cache base on this value.
   * Although its recommend to setup user account for your Redis server, if you want to use default user, you can just remove `username` and `password` fields from `jobtable`. Or, just put `null` for them.
+* `aws` field contains all the informations of an aws s3 bucket, so the backend can save file to s3. If set it to `null`, backend will save file to `server/uploadedImages/` folder in the filesystem.
 
 1. you can use `.template` files under `src/server/config/` as your starting point
 

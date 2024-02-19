@@ -64,6 +64,10 @@ const limiter = rateLimit({
   // store: ... , // Use an external store for consistency across multiple server instances.
 });
 app.use(limiter);
+// Enable if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
+// https://expressjs.com/en/guide/behind-proxies.html
+// https://express-rate-limit.mintlify.app/reference/error-codes#err-erl-unexpected-x-forwarded-for
+app.set('trust proxy', 1);
 
 app.use(passport.initialize());
 app.use(passport.session());

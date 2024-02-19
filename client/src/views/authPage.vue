@@ -13,7 +13,6 @@ onBeforeMount(checkUserType);
 function checkUserType() {
   const token = Cookies.get("token");
   const user = jwtDecode(token);
-  console.log(user.user_id);
   auth.userType = user.user_type;
   auth.isAuthenticated = true;
   router.push({ path: "/upload" });

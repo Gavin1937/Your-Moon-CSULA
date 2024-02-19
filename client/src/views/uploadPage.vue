@@ -477,7 +477,7 @@ async function uploadCroppedImage() {
       <div class="padding1">
         <h2 class="txt up1">Upload and crop your image.</h2>
         <br />
-        <input 
+        <input
           class="inputFile"
           type="file"
           accept=".jpg,.png,.webp,.bmp,.jpeg"
@@ -593,7 +593,7 @@ async function uploadCroppedImage() {
                     <div class="field">
                       <label class="label"> Date </label>
                       <div class="control">
-                        <input 
+                        <input
                           class="input"
                           type="date"
                           max="9999-12-31"
@@ -663,13 +663,12 @@ async function uploadCroppedImage() {
               Upload
             </button>
 
-
             <!--Remove duplicate error message.
             <div
               class="status-message"
               v-if="fileSizeExceeded || !isValidFileType || invalidCoords"
             >
-            --> 
+            -->
             <div class="status-message">
               {{ data.message }}
               <!--  <p class="status-message">
@@ -711,9 +710,8 @@ async function uploadCroppedImage() {
   overflow: auto;
 }
 */
-.inputFile{
-  color: white; 
-
+.inputFile {
+  color: white;
 }
 .autocomplete-result {
   list-style: none;

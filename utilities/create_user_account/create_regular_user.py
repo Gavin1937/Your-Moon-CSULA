@@ -1,7 +1,7 @@
 # ################################################## #
 #                                                    #
 # Simple python3 utility to help you to create a     #
-# NORMAL user account in the system without the      #
+# REGULAR user account in the system without the     #
 # backend                                            #
 #                                                    #
 # ################################################## #
@@ -37,7 +37,7 @@ def encrypt_utf8(utf8_data:str, b64_key:str, output_as_b64:bool=False):
 
 def main():
     
-    print('This utility will help you to create a normal user account in the system without the backend.\n')
+    print('This utility will help you to create a regular user account in the system without the backend.\n')
     
     aes_key = input('1) What is the "aes_key" in the backend config:\n')
     jwt_secret = b64decode(input('\n2) What is the "jwt_secret" in the backend config:\n'))

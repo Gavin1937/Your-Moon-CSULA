@@ -7,6 +7,7 @@
     "session_key": "Base64_random_bytes_for_express_session_secret",
     "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
     "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
+    "frontend_url": "http://localhost:5173",
     "cors_origin_whitelist": [
         "http://localhost:5173"
     ],

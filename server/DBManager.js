@@ -205,7 +205,11 @@ class DBManager {
                     // found user, generate jwt with user_id & hashed_email
                     this.logger.info(`Login existing user, user_id=${result2[0].user_id}`);
                     let jwt_output = jwt.sign(
-                        {user_id:result2[0].user_id, hashed_email:hashed_email},
+                        {
+                            user_id:result2[0].user_id,
+                            user_type: 'regular',
+                            hashed_email:hashed_email
+                        },
                         Buffer.from(this.jwt_secret, 'base64'),
                         {algorithm:"HS256", expiresIn:"2 days"}
                     );
@@ -218,7 +222,11 @@ class DBManager {
             else {
                 this.logger.info(`Create new user, user_id=${result.insertId}`);
                 let jwt_output = jwt.sign(
-                    {user_id:result.insertId, hashed_email:hashed_email},
+                    {
+                        user_id:result.insertId,
+                        user_type: 'regular',
+                        hashed_email:hashed_email
+                    },
                     Buffer.from(this.jwt_secret, 'base64'),
                     {algorithm:"HS256", expiresIn:"2 days"}
                 );
@@ -239,7 +247,10 @@ class DBManager {
         
         let session_uuid = uuid.v4();
         let jwt_output = jwt.sign(
-            {user_id:'sess-'+session_uuid},
+            {
+                user_id:'sess-'+session_uuid,
+                user_type: 'guest'
+            },
             Buffer.from(this.jwt_secret, 'base64'),
             {algorithm:"HS256", expiresIn:"1 hours"}
         );
@@ -264,13 +275,20 @@ class DBManager {
                 return;
             } else {
                 // guest user session
-                if (typeof payload.user_id === 'string' && payload.user_id.startsWith('sess-')) {
+                if (
+                    typeof payload.user_id === 'string' &&
+                    payload.user_id.startsWith('sess-') &&
+                    payload.user_type === 'guest'
+                ) {
                     this.logger.debug(`guest user: ${payload.user_id}`);
-                    handler(null, {ok:true, ...payload, user_type:'guest'});
+                    handler(null, {ok:true, ...payload});
                     return;
                 }
-                // normal user
-                else {
+                // regular user
+                else if (
+                    typeof payload.user_id === 'number' &&
+                    payload.user_type === 'regular'
+                ) {
                     let get_email = `SELECT user_email FROM Users WHERE user_id = ? AND user_email_md5 = ?;`;
                     let get_email_list = [payload.user_id, payload.hashed_email];
                     this.db.query(get_email, get_email_list, (error, result) => {
@@ -288,7 +306,7 @@ class DBManager {
                                 handler(new Error("User email not matching"), null);
                                 return;
                             } else {
-                                handler(null, {ok:true, ...payload, user_type:'normal'});
+                                handler(null, {ok:true, ...payload});
                             }
                         }
                     });
@@ -318,7 +336,7 @@ class DBManager {
         }
     }
     
-    finishUploadJob(upload_uuid, upload_count, flag_count, handler)
+    finishUploadJob(is_guest_user, upload_uuid, upload_count, flag_count, handler)
     {
         if (this.establishedConnection == null || this.db == null) {
             this.logger.error(`Did not connect to database or JobTable`);
@@ -326,19 +344,23 @@ class DBManager {
             return;
         }
         
-        try {
-            let update_user = `UPDATE Users SET user_upload_count = user_upload_count + ?, user_flag_count = user_flag_count + ? WHERE user_id = ?;`;
-            
-            this.table.pop(upload_uuid).then((user_id)=>{
-                this.logger.debug(`user_id: ${JSON.stringify(user_id, null, 2)}`);
-                this.db.query(update_user, [upload_count, flag_count, user_id], handler);
-            }).catch((error)=>{
-                this.logger.error(`error: ${error}`);
-                handler(new Error(error), null);
-            })
-        } catch (query_error) {
-            this.logger.error(`query_error: ${query_error.stack}`);
-            this.dropConnection();
+        if (!is_guest_user) { // regular user
+            try {
+                let update_user = `UPDATE Users SET user_upload_count = user_upload_count + ?, user_flag_count = user_flag_count + ? WHERE user_id = ?;`;
+                
+                this.table.pop(upload_uuid).then((user_id)=>{
+                    this.logger.debug(`user_id: ${JSON.stringify(user_id, null, 2)}`);
+                    this.db.query(update_user, [upload_count, flag_count, user_id], handler);
+                }).catch((error)=>{
+                    this.logger.error(`error: ${error}`);
+                    handler(new Error(error), null);
+                })
+            } catch (query_error) {
+                this.logger.error(`query_error: ${query_error.stack}`);
+                this.dropConnection();
+            }
+        } else {
+            handler(null, null);
         }
     }
     

@@ -14,13 +14,8 @@ function checkUserType() {
   const token = Cookies.get("token");
   const user = jwtDecode(token);
   console.log(user.user_id);
-  if (typeof user.user_id === "number") {
-    auth.userType = "regular";
-    auth.isAuthenticated = true;
-  } else if (user.user_id.includes("sess")) {
-    auth.userType = "guest";
-    auth.isAuthenticated = true;
-  }
+  auth.userType = user.user_type;
+  auth.isAuthenticated = true;
   router.push({ path: "/upload" });
 }
 </script>

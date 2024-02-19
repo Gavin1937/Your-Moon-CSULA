@@ -20,7 +20,7 @@ var db = new DBManager(
   logger
 );
 const upload = require("./multerSetup.js")(
-  process.env.STORAGE_METHOD,
+  (('aws' in config && config['aws']) ? 's3' : 'native'),
   config,
   logger
 );
@@ -47,6 +47,8 @@ app.use(
     ),
     resave: false,
     saveUninitialized: false,
+    // TODO: change this for production
+    // https://stackoverflow.com/a/40324493
     cookie: { secure: false },
   })
 );
@@ -62,6 +64,10 @@ const limiter = rateLimit({
   // store: ... , // Use an external store for consistency across multiple server instances.
 });
 app.use(limiter);
+// Enable if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
+// https://expressjs.com/en/guide/behind-proxies.html
+// https://express-rate-limit.mintlify.app/reference/error-codes#err-erl-unexpected-x-forwarded-for
+app.set('trust proxy', 1);
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -77,6 +83,7 @@ app.use("/api/auth", authRoutes);
 function uploadHandler(next) {
   // outer function takes in "next" request handler
   return function (req, res) {
+    // logger.debug(`uploadHandler inner func res: ${JSON.stringify(res)}`);
     // returns a request handler uses "next" inside
     upload.single("lunarImage")(req, res, function (error) {
       // MulterError handler function
@@ -136,6 +143,8 @@ app.post(
           });
         } else {
           logger.info("VERIFIED USER!");
+          const is_guest_user = (result.user_type === 'guest');
+          logger.debug(`is_guest_user: ${is_guest_user}`);
           const imgFile = req.file; // gets the file that is uploaded from the client
           logger.debug(`imgFile:\n${JSON.stringify(imgFile, null, 2)}`); // testing purposes to see some info of the file
 
@@ -161,7 +170,7 @@ app.post(
           logger.debug(`path: ${path}`);
 
           // rm job from the queue
-          db.finishUploadJob(upload_uuid, 1, 0, (error2, result2) => {
+          db.finishUploadJob(is_guest_user, upload_uuid, 1, 0, (error2, result2) => {
             if (error2) {
               logger.error("THERE HAS BEEN AN ERROR UPLOADING THE IMAGE!");
               logger.error(`error2:\n${error2.toString()}`);
@@ -237,7 +246,7 @@ app.post("/api/picMetadata", (req, res) => {
                 message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
               });
             } else {
-              logger.info("IMAGE INSERTED SUCCESSFULLY!");
+              logger.info("IMAGE METADATA INSERTED SUCCESSFULLY!");
 
               // TODO: use redis for this job queue
               db.registerUploadJob(
@@ -314,7 +323,7 @@ app.get("/api/verifyUser", (req, res) => {
 //! For now, lets disable this endpoint in production
 if (process.env.NODE_ENV !== "production") {
   // Authenticate or Register User
-  // This endpoint can handle both normal user and guest user
+  // This endpoint can handle both regular user and guest user
   // Just add a new field `{"guest_user":true}` to the request body
   // and you will register as a guest
   app.post("/api/authUser", (req, res) => {

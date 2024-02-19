@@ -38,13 +38,13 @@ const toggleBurger = () => {
     >
       <ul class="nav navbar-nav">
         <li class="nav-item">
-          <RouterLink class="nav-link" to="/">Home</RouterLink>
+          <router-link class="nav-link" to="/">Home</router-link>
         </li>
         <li class="nav-item">
-          <RouterLink class="nav-link" to="/upload">Upload</RouterLink>
+          <router-link class="nav-link" to="/upload">Upload</router-link>
         </li>
         <li class="nav-item">
-          <RouterLink class="nav-link" to="/contact">Contact</RouterLink>
+          <router-link class="nav-link" to="/contact">Contact</router-link>
         </li>
         <li v-if="auth.isAuthenticated" class="nav-item">
           <a class="nav-link" @click="auth.logout">Logout</a>

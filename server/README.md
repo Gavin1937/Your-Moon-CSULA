@@ -26,6 +26,7 @@
     "session_key": "Base64_random_bytes_for_express_session_secret",
     "aes_key": "Base64_aes_key_256_bits_for_email_encryption",
     "jwt_secret": "Base64_jwt_secret_with_HS256_algorithm_512_bits",
+    "frontend_url": "http://localhost:5173", // Do not add trailing "/" to the url.
     "cors_origin_whitelist": [
         "http://localhost:5173"
     ],
@@ -77,6 +78,10 @@ print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8')
 
 * Also Note that `aes_key` is the key used for encrypt email, if you lost it, you cannot decrypt emails in the database anymore.
 
+* `frontend_url` field is a string url of the frontend, this is here because we don't want to missuse `cors_origin_whitelist` list. **Do not add trailing "/" to the url.**
+  * **Note that, this field is not required when deploying the app with reverse proxy**
+  * Set this field to `null` if you don't need it
+
 * `cors_origin_whitelist` field is a list of urls to the the frontend, they are whitelist for cors cross origin protection. This is because we need to send credentials (cookie) from the frontend to backend.
 
 * `rate_limit` field tells the backend how to setup rate limiting for all the endpoints.
@@ -87,6 +92,7 @@ print(b64encode(randbytes(int(int(input('How many bits: '))/8))).decode('utf-8')
 
 * `jobtable` field tells the backend where to save its temporary cache data. The most important item is `type`, which can be either `redis` or `native`. The backend will use Redis server or JavaScript Object as its cache base on this value.
   * Although its recommend to setup user account for your Redis server, if you want to use default user, you can just remove `username` and `password` fields from `jobtable`. Or, just put `null` for them.
+* `aws` field contains all the informations of an aws s3 bucket, so the backend can save file to s3. If set it to `null`, backend will save file to `server/uploadedImages/` folder in the filesystem.
 
 1. you can use `.template` files under `src/server/config/` as your starting point
 
@@ -121,17 +127,13 @@ run following command to deploy with docker
 docker build -t your-moon-server .
 ```
 
-2. [Optional] then, setup redis server
+2. [Optional] then, [setup redis server](../redis/README.md)
 
-```sh
-docker run -d --name your-moon-redis -p 6379:6379 redis
-```
+> Note that, this step is `Optional` because you can configure `jobtable.type` to `native`, its easier for developing only the backend
 
-> Note that, we expose port `6379` here for ease of development. In production, you shouldn't expose redis port and should configure backend's jobtable host as `your-moon-redis` so it can find redis inside docker network
+> Note that, if both server and redis server is running inside docker containers, you need to [configure docker network](../DockerNetwork.md). Otherwise they cannot find each other.
 
-> Also note that, this step is `Optional` because you can configure `jobtable.type` to `native`, its easier for developing only the backend
-
-1. next, run docker container with following command
+3. next, run docker container with following command
 
 ```sh
 docker run -it --rm --name your-moon-server -p 3001:3001 -v "$(pwd)/config:/src/config" -v "$(pwd)/uploadedImages:/src/uploadedImages" your-moon-server

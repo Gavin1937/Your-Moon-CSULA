@@ -13,7 +13,9 @@ services:
       - "./data/server:/src/data"
   
   your-moon-redis:
-    image: redis
+    build:
+      context: redis/
+      dockerfile: Dockerfile
     container_name: your-moon-redis
     restart: unless-stopped
   

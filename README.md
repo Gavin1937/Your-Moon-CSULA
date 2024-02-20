@@ -37,11 +37,13 @@ mkdir -p data/server/uploadedImages
 ```
 
 2. follow [frontend client configuration document](./client/README.md#configure) to create all config file under `data/client/config`
+   * **This step isn't require when deploying with docker-compose. For docker, you still need this step**
 
 3. follow [backend client configuration document](./server/README.md#configure) to create all config file under `data/backend/config`
    * **Note that you should set the path of `log_file` to `/src/data/your-moon-server.log`, so server's log file can be put under `data/server`**
    * **Also Note that docker container will only accept `production.config.json` file, so be sure you create the right one**
    * You can use [./server/config/production.config.json.docker](./server/config/production.config.json.docker) as your starting point
+   * **Be carefull about "frontend_url" field in the config file, you cannot use this field if deploying with reverse proxy**
 
 
 ## Deploy with Docker Compose (recommend)
@@ -65,6 +67,8 @@ Assuming you are in the root directory of this repository
    2. and then add a new line in it: `APP_PORT=8080`
    3. this file will tell docker-compose which port to expose for the entire app
    4. you can use file `.env.template` as your starting point
+
+> Note that, if you want to run Redis server with a username and password, you can modify `docker-compose.yml` or `docker-compose-reverse-proxy.yml` file, so `your-moon-redis -> build -> dockerfile` is set to `Dockerfile_user`. And you also need to [configure a redis.conf file](./redis/README.md) with the username and password you want.
 
 
 ### Deploy Entire App with Docker Compose
@@ -104,3 +108,7 @@ docker-compose -f docker-compose-reverse-proxy.yml build --no-cache
 ## DATABASE
 
 [Refer to this document](./db/README.md)
+
+## About Docker Network
+
+[Refer to this document](./DockerNetwork.md)

@@ -1,44 +1,41 @@
 <template>
-  <body>
-    <div class="container">
-      <div class="screen">
-        <div class="card mt-4">
-          <div class="card-header text-center">Contact us </div>
-          <div
-            class="card-body d-flex justify-content-center align-items-center flex-column"
-          ></div>
-
-          <div class="contact-form">
-            <!-- <div class="contact-form-group">
-              <input class="contact-form-edit" placeholder="name" />
-            </div> -->
-            <!-- <div class="contact-form-group">
-              <input class="contact-form-edit email" placeholder="Email" />
-            </div> -->
-            <div class="contact-form-group message">
-              <textarea
-                id="message"
-                v-model="message"
-                class="contact-form-edit-message"
-                placeholder="Message"
-                rows="10"
-                cols="20"
-              ></textarea>
-            </div>
-            <div class="contact-form-group buttons">
-              <button @click="clearMessage" class="contact-form-button">
-                Cancel
-              </button>
-              <button @click="sendMessage" class="contact-form-button">
-                Send
-              </button>
-            </div>
+  <div class="container">
+    <div class="screen">
+      <div class="card mt-4">
+        <div class="card-header text-center">
+          <p>Contact us</p>
+        </div>
+        <div class="card-body d-flex justify-content-center align-items-center flex-column">
+          <h3>
+            <a href="mailto:Example@email.com" class="email-link">Example@email.com</a>
+          </h3>
+        </div>
+        <div class="contact-form">
+          <div class="contact-form-group message">
+            <textarea
+              id="message"
+              v-model="message"
+              class="contact-form-edit-message"
+              placeholder="Message"
+              rows="10"
+              cols="20"
+            ></textarea>
+          </div>
+          <div class="contact-form-group buttons">
+            <button @click="clearMessage" class="contact-form-button">
+              Cancel
+            </button>
+            <button @click="sendMessage" class="contact-form-button">
+              Send
+            </button>
           </div>
         </div>
       </div>
     </div>
-  </body>
+  </div>
 </template>
+
+
 <script>
 export default {
   data() {
@@ -48,7 +45,7 @@ export default {
   },
   methods: {
     sendMessage() {
-      const email = "moontrek@gmail.com"; // Replace with actual moontrek email
+      const email = "example@gmail.com"; // Replace with actual email
       const subject = "Message from Contact form";
       const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(
         subject
@@ -93,6 +90,12 @@ p {
   width: calc(80%);
 }
 
+.card-body{
+  text-align: center;
+  width: 100%;
+  margin:10px 0;
+}
+
 .contact-form-group {
   margin-bottom: 15px;
   text-align: center;
@@ -102,7 +105,7 @@ p {
   text-transform: inherit;
 }
 .contact-form-group.message {
-  margin-top: 40px;
+  margin-top: 10px;
 }
 .contact-form-group.buttons {
   margin-bottom: 0;
@@ -121,7 +124,7 @@ p {
 .contact-form-button {
   background: none;
   border: none;
-  color: #4d4d4f;
+  color: #ceced3;
   font-size: 16px;
   cursor: pointer;
   outline: none;
@@ -141,5 +144,14 @@ p {
   text-transform: capitalize;
   outline: none;
   transition: border-color 0.2s;
+}
+
+.email-link{
+  color: #5e81ac;
+  text-decoration: none;
+}
+
+.email-link:hover{
+  color: #ffffff;
 }
 </style>

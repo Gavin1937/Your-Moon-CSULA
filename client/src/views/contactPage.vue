@@ -7,7 +7,7 @@
         </div>
         <div class="card-body d-flex justify-content-center align-items-center flex-column">
           <h3>
-            <a href="mailto:Example@email.com" class="email-link">Example@email.com</a>
+            <a href="mailto:Example@email.com" class="email-link">moontrekcsula@gmail.com</a>
           </h3>
         </div>
         <div class="contact-form">
@@ -45,7 +45,7 @@ export default {
   },
   methods: {
     sendMessage() {
-      const email = "example@gmail.com"; // Replace with actual email
+      const email = "moontrekcsula@gmail.com"; // Replace with actual email
       const subject = "Message from Contact form";
       const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(
         subject

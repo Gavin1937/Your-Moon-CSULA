@@ -20,7 +20,7 @@ var db = new DBManager(
   logger
 );
 const upload = require("./multerSetup.js")(
-  (('aws' in config && config['aws']) ? 's3' : 'native'),
+  process.env.STORAGE_METHOD,
   config,
   logger
 );
@@ -83,7 +83,6 @@ app.use("/api/auth", authRoutes);
 function uploadHandler(next) {
   // outer function takes in "next" request handler
   return function (req, res) {
-    // logger.debug(`uploadHandler inner func res: ${JSON.stringify(res)}`);
     // returns a request handler uses "next" inside
     upload.single("lunarImage")(req, res, function (error) {
       // MulterError handler function
@@ -246,7 +245,7 @@ app.post("/api/picMetadata", (req, res) => {
                 message: "THERE HAS BEEN AN ERROR INSERTING THE IMAGE!",
               });
             } else {
-              logger.info("IMAGE METADATA INSERTED SUCCESSFULLY!");
+              logger.info("IMAGE INSERTED SUCCESSFULLY!");
 
               // TODO: use redis for this job queue
               db.registerUploadJob(

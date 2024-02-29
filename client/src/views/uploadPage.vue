@@ -197,38 +197,34 @@ function checkFileType(file) {
     const reader = new FileReader();
     let header = "";
     reader.onload = (e) => {
-      let fileType = "invalid";
+      let fileType = "";
       let arr = new Uint8Array(e.target.result).subarray(0, 16);
+
+      // for (let i = 0; i < arr.length; i++) {
+      //   header += arr[i].toString(16);
+      // }
       let dataview = new DataView(arr.buffer);
-      let _1st_4bytes = dataview.getUint32(0, false);
-      let _2nd_4bytes = dataview.getUint32(4, false);
-      let _3rd_4bytes = dataview.getUint32(8, false);
-      let _4th_4bytes = dataview.getUint32(12, false);
-      
-      // compare input bytes with an int pattern:
-      // `(bytes & pattern)` will mask input bytes and return an int in two's complement;
-      // `(-(~pattern+1))` will turn pattern into two's complement;
-      // compare both sides to determine bytes.
-      let bytesMatch = (bytes, pattern) => {return (bytes & pattern) == (-(~pattern+1));};
-      
+
       // hexadecimal representation of those file extensions.
       // References:
       // https://mimesniff.spec.whatwg.org/#matching-an-image-type-pattern
       // https://en.wikipedia.org/wiki/List_of_file_signatures
-      // https://en.wikipedia.org/wiki/WebP
-      if (bytesMatch(_1st_4bytes, 0x424d0000)) {
+      if (dataview.getUint16(0, false) == 0x424d) {
         fileType = "bmp";
-      } else if (bytesMatch(_1st_4bytes, 0xffd8ff00)) {
+      } else if (dataview.getUint32(0, true) & (0x00ffd8ff > 0)) {
         fileType = "jpg";
-      } else if (bytesMatch(_1st_4bytes, 0x504e4700) || bytesMatch(_1st_4bytes, 0x00504e47)) {
+      } else if (dataview.getUint32(0, true) & (0x00474e50 > 0)) {
         fileType = "png";
-      } else if (bytesMatch(_1st_4bytes, 0x52494646) && bytesMatch(_3rd_4bytes, 0x57454250)) {
+      } else if (
+        dataview.getUint32(0, false) == 0x52494646 &&
+        dataview.getUint32(8, false) == 0x57454250
+      ) {
         fileType = "webp";
       } else {
         fileType = "invalid";
         data.message = "File type not accepted";
       }
-      
+
       data.fileType = fileType;
       data.isValidFileType = fileType !== "invalid" ? true : false;
       resolve({
@@ -239,18 +235,6 @@ function checkFileType(file) {
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);
   });
-}
-
-function base64ToBlob(base64String, contentType = '') {
-  const byteCharacters = atob(base64String);
-  const byteArrays = [];
-  
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteArrays.push(byteCharacters.charCodeAt(i));
-  }
-  
-  const byteArray = new Uint8Array(byteArrays);
-  return new Blob([byteArray], { type: contentType });
 }
 
 async function onFileChange(e) {
@@ -434,28 +418,26 @@ async function uploadCroppedImage() {
     );
 
     if (meta_res.status == 200) {
-      
-      let b64content = data.imageDataUrl.substr(
-        data.imageDataUrl.indexOf(";base64,") + 8
-      );
-      let fileBlob = base64ToBlob(b64content);
+      const imgFile = await new Promise((resolve) => {
+        cropr.value.getCroppedCanvas().toBlob((img) => {
+          resolve(img);
+        });
+      });
       const formData = new FormData();
       formData.append(
         "lunarImage",
         // we can rename imgFile by re-create a new File obj
-        new File([fileBlob], metadata_params.image.img_name, {
-          type: `image/${data.fileType}`
-        })
+        new File([imgFile], metadata_params.image.img_name, {
+          type: data.fileType,
+        }),
+        data.fileType
       );
       const upload_res = await axios.post(
         `${config.backend_url}/api/picUpload?upload_uuid=${meta_res.data.upload_uuid}`,
         formData,
-        {
-          headers: {'Content-Type': 'multipart/form-data'},
-          withCredentials: true
-        }
+        { withCredentials: true }
       );
-      
+
       const { status } = upload_res.data;
       console.log(`status: ${status}`);
 

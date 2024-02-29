@@ -12,7 +12,7 @@ const toggleBurger = () => {
 
 <template>
   <nav class="navbar navbar-expand-lg">
-    <a href="/" class="navbar-brand">
+    <RouterLink to="/" class="navbar-brand">
       <img
         src="../assets/moon_phase.gif"
         alt="moon gif"
@@ -20,7 +20,7 @@ const toggleBurger = () => {
       />
       <span class="brand-your" style="color: #ffb703">Your</span>
       <span class="brand-moon" style="color: #fefae0">Moon</span>
-    </a>
+    </RouterLink>
 
     <button
       class="navbar-toggler"
@@ -40,7 +40,7 @@ const toggleBurger = () => {
         <li class="nav-item">
           <RouterLink class="nav-link" to="/">Home</RouterLink>
         </li>
-        <li class="nav-item">
+        <li v-if="auth.isAuthenticated" class="nav-item">
           <RouterLink class="nav-link" to="/upload">Upload</RouterLink>
         </li>
         <li class="nav-item">

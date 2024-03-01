@@ -324,7 +324,7 @@ class DBManager {
         }
         
         try {
-            this.table.push(user_id.toString()).then((upload_uuid, expire)=>{
+            this.table.push(user_id.toString(), upload_job_expire).then((upload_uuid, expire)=>{
                 handler(null, {upload_uuid:upload_uuid, expires:expire});
             }).catch((error)=>{
                 this.logger.error(`Unable to push to JobTable: ${error}`);

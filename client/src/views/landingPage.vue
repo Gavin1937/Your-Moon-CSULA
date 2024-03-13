@@ -1,9 +1,19 @@
 <script setup>
 import config from "../../config/config.json";
-import { useAuthStore } from "@/stores/authStore.js";
-import { ref } from "vue";
+import { onBeforeMount, ref, onServerPrefetch, onMounted } from "vue";
+import { checkCookie } from "../router/authUtils.js";
 
-const auth = useAuthStore();
+const authenticated = ref(false);
+// window.onload = async () => (authenticated = await checkCookie());
+onServerPrefetch(async () => (authenticated.value = await checkCookie()));
+onMounted(async () => {
+  if (!authenticated.value) {
+    // if data is null on mount, it means the component
+    // is dynamically rendered on the client. Perform a
+    // client-side fetch instead.
+    authenticated.value = await checkCookie();
+  }
+});
 const isExpanded = ref(false);
 const isOptIn = ref(false);
 
@@ -33,6 +43,7 @@ function toggleExpand() {
         <div class="row">
           <!-- LeftHand Column -->
           <div class="col-xs-12 col-md-8">
+            <p>{{ authenticated.value }}</p>
             <h1>Welcome</h1>
             <p>
               Welcome to YourMoon, a web application inviting users to submit
@@ -68,7 +79,7 @@ function toggleExpand() {
           <!-- RightHand Column -->
           <div class="col-xs-6 col-md-4">
             <!-- Upload Card -->
-            <div v-if="!auth.isAuthenticated" class="card">
+            <div v-if="!authenticated" class="card">
               <div class="card-header text-left">UPLOAD YOUR MOON</div>
               <div
                 class="card-body d-flex justify-content-center align-items-center flex-column"

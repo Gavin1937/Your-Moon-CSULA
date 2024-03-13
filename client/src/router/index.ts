@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { useAuthStore } from "@/stores/authStore";
+// import { useAuthStore } from "@/stores/authStore";
+import { checkCookie } from "./authUtils";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,13 +28,21 @@ const router = createRouter({
   ],
 });
 
-router.beforeEach((to, from) => {
-  const auth = useAuthStore();
-  if (to.meta.requiresAuth && !auth.isAuthenticated)
-    //if not authenticated return to home page
+router.beforeEach(async (to, from) => {
+  try {
+    const authenticated = await checkCookie();
+
+    if (to.meta.requiresAuth && !authenticated)
+      //if not authenticated return to home page
+      return {
+        path: "/",
+      };
+  } catch (error) {
+    console.log(error);
     return {
       path: "/",
     };
+  }
 });
 
 export default router;

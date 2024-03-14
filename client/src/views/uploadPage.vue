@@ -6,7 +6,11 @@ import CryptoJS from "crypto-js";
 import axios from "axios";
 import ExifReader from "exifreader";
 import { ref, reactive } from "vue";
-import MoonRegistration from "../moon-registration";
+import {
+  ImageHandler,
+  circle_to_square,
+  detect_moon
+} from "../moon-registration";
 import config from "../../config/config.json";
 import { nearestCity } from "cityjs";
 import citiesArray from "@/data/arrays.js";
@@ -374,24 +378,27 @@ async function updateMetaData() {
 //   * returns from MoonDetection() will be receive & process by this.onMoonPositionUpdatse()
 async function RunDetectMoon(_fileObject, _type = "square") {
   try {
-    MoonRegistration.MoonDetection(_fileObject, _type, onMoonPositionUpdate);
+    let image_handler = new ImageHandler();
+    await image_handler.load_from_fileobject(_fileObject);
+    let circle = await detect_moon(image_handler);
+    
+    data.moon_position_circle = {
+      x: circle.x,
+      y: circle.y,
+      radius: circle.radius,
+    };
+  if (_type == "square") {
+    let square = await circle_to_square(circle);
+    data.moon_position = {
+      x: square.x,
+      y: square.y,
+      width: square.width,
+    };
+  }
+  console.log("moon_position:", data.moon_position);
+
   } catch (err) {
     data.message = err;
-  }
-}
-async function onMoonPositionUpdate(new_position_circle, new_position) {
-  data.moon_position_circle = {
-    x: new_position_circle.x,
-    y: new_position_circle.y,
-    radius: new_position_circle.radius,
-  };
-  if (new_position.type == "square") {
-    data.moon_position = {
-      x: new_position.x,
-      y: new_position.y,
-      width: new_position.width,
-    };
-    console.log("moon_position:", data.moon_position);
   }
 }
 // function that gets the cropped image and sends it to server-side

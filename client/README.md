@@ -7,7 +7,8 @@
 
 ```jsonc
 {
-    "backend_url": "http://localhost:3001" // full url to backend server, without trailing "/"
+    "backend_url": "http://localhost:3001", // full url to backend server, without trailing "/"
+    "contact_email": "your@email.com" // an email for contact page
 }
 ```
 
@@ -25,11 +26,12 @@ run following command to deploy with docker
 1. build the docker image
 
 ```sh
-docker build -t your-moon-client --build-arg="BACKEND_URL=http://localhost:3001" .
+docker build -t your-moon-client --build-arg="BACKEND_URL=http://localhost:3001" --build-arg="CONTACT_EMAIL=your@email.com" .
 ```
 
 2. **Note that you MUST supply parameter `--build-arg` so docker can build the application into distributable package with correct backend url**
    * **Replace the value of `BACKEND_URL` with the url of your backend**
+   * **Replace the value of `CONTACT_EMAIL` with your contact email**
 
 3. then, run docker container with following command
 

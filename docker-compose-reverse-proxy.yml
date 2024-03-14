@@ -24,6 +24,7 @@ services:
       context: client/
       args:
         BACKEND_URL: ""
+        CONTACT_EMAIL: ${CONTACT_EMAIL}
     image: your-moon-client
     container_name: your-moon-client
     restart: unless-stopped

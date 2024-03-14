@@ -6,8 +6,9 @@ COPY . .
 
 # build
 ARG BACKEND_URL
+ARG CONTACT_EMAIL
 RUN \
-    mkdir config && echo '{"backend_url":"'"${BACKEND_URL}"'"}' > config/config.json && \
+    mkdir config && echo '{"backend_url":"'"${BACKEND_URL}"'","contact_email":"'"${CONTACT_EMAIL}"'"}' > config/config.json && \
     npm install && npm run build
 
 

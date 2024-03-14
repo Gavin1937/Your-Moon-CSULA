@@ -1,3 +1,7 @@
+<script setup>
+import config from "../../config/config.json";
+const default_mailto = `mailto:${config.contact_email}`;
+</script>
 <template>
   <div class="container">
     <div class="screen">
@@ -7,7 +11,7 @@
         </div>
         <div class="card-body d-flex justify-content-center align-items-center flex-column">
           <h3>
-            <a href="mailto:Example@email.com" class="email-link">moontrekcsula@gmail.com</a>
+            <a :href="default_mailto" class="email-link">{{ config.contact_email }}</a>
           </h3>
         </div>
         <div class="contact-form">
@@ -32,7 +36,7 @@
         </div>
       </div>
     </div>
-  </body>
+  </div>
 </template>
 <script>
 export default {
@@ -43,7 +47,7 @@ export default {
   },
   methods: {
     sendMessage() {
-      const email = "moontrekcsula@gmail.com"; // Replace with actual email
+      const email = config.contact_email;
       const subject = "Message from Contact form";
       const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(
         subject

@@ -37,7 +37,8 @@ mkdir -p data/server/uploadedImages
 ```
 
 2. follow [frontend client configuration document](./client/README.md#configure) to create all config file under `data/client/config`
-   * **This step isn't require when deploying with docker-compose. For docker, you still need this step**
+   * **When using docker-compose, [configuring .env file](#configure-for-docker-compose-recommend) will automatically configure the client for you. You don't need to create a separate config file**
+   * **When using docker along, you still need this step**
 
 3. follow [backend client configuration document](./server/README.md#configure) to create all config file under `data/backend/config`
    * **Note that you should set the path of `log_file` to `/src/data/your-moon-server.log`, so server's log file can be put under `data/server`**

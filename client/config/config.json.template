@@ -1,3 +1,4 @@
 {
-    "backend_url": "http://localhost:3001"
+    "backend_url": "http://localhost:3001",
+    "contact_email": "your@email.com"
 }

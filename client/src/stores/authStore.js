@@ -1,21 +1,23 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { useRouter } from "vue-router";
 
 export const useAuthStore = defineStore(
   "AuthStore",
   () => {
-    const isAuthenticated = ref(false);
-    const router = useRouter();
-    const userType = ref("");
-    function logout() {
-      isAuthenticated.value = false;
-      userType.value = "";
+    const signInTime = ref(0);
+
+    function getCurrTime() {
+      //saves time since January 1, 1970, UTC in milliseconds
+      signInTime.value = Date.now();
+    }
+
+    function signOut() {
       document.cookie =
         "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      router.push({ path: "/" });
+      sessionStorage.removeItem("AuthStore");
     }
-    return { isAuthenticated, userType, logout };
+
+    return { signInTime, getCurrTime, signOut };
   },
   {
     persist: {

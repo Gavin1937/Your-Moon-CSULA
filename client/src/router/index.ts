@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
-// import { useAuthStore } from "@/stores/authStore";
+import { useAuthStore } from "@/stores/authStore";
 import { checkCookie } from "./authUtils";
+import Cookies from "js-cookie";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,19 +30,24 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from) => {
+  const auth = useAuthStore();
   try {
-    const authenticated = await checkCookie();
-
-    if (to.meta.requiresAuth && !authenticated)
-      //if not authenticated return to home page
-      return {
-        path: "/",
-      };
+    let authenticated = false;
+    const token = Cookies.get("token");
+    const currTime = Date.now();
+    const timeSinceSignIn = currTime - auth.signInTime;
+    //3_600_000ms in 1 hour, if 1 hour passed since user logged in and cookie still exist
+    //we verify if cookie is still valid(cookie only expires after 1 hour for guest users
+    // and 2 days for regular users). We implement this to limit calling the verifyUser
+    //endpoint which checks if the cookie is valid
+    if (token && timeSinceSignIn < 3_600_000) authenticated = true;
+    else authenticated = await checkCookie();
+    if (to.meta.requiresAuth && !authenticated) {
+      return { path: "/" };
+    }
   } catch (error) {
     console.log(error);
-    return {
-      path: "/",
-    };
+    return { path: "/" };
   }
 });
 

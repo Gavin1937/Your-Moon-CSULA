@@ -97,7 +97,9 @@ module.exports = (db, logger, config) => {
         secure: true,
         maxAge: 2 * 24 * 60 * 60 * 1000,
       });
-      res.redirect((config.frontend_url ? config.frontend_url : "") + "/authenticate");
+      res.redirect(
+        (config.frontend_url ? config.frontend_url : "") + "/authenticate"
+      );
     }
   );
 
@@ -115,7 +117,9 @@ module.exports = (db, logger, config) => {
         secure: true,
         maxAge: 2 * 24 * 60 * 60 * 1000,
       });
-      res.redirect((config.frontend_url ? config.frontend_url : "") + "/authenticate");
+      res.redirect(
+        (config.frontend_url ? config.frontend_url : "") + "/authenticate"
+      );
     }
   );
 

@@ -1,30 +1,23 @@
 <script setup>
 import { ref } from "vue";
-import { checkCookie, deleteCookie } from "../router/authUtils";
-import { onMounted, onServerPrefetch } from "vue";
+
+import { onBeforeMount } from "vue";
 import { useRouter } from "vue-router";
+import { useAuthStore } from "../stores/authStore.js";
+import Cookies from "js-cookie";
 
 const router = useRouter();
 const authenticated = ref(false);
+const auth = useAuthStore();
 
-onServerPrefetch(async () => (authenticated.value = await checkCookie()));
-onMounted(async () => {
-  try {
-    if (!authenticated.value) {
-      // if data is null on mount, it means the component
-      // is dynamically rendered on the client. Perform a
-      // client-side fetch instead.
-      authenticated.value = await checkCookie();
-    }
-  } catch (error) {
-    router.push({ path: "/" });
-  }
+onBeforeMount(() => {
+  authenticated.value = Cookies.get("token") ? true : false;
 });
 
 const isBurgerActive = ref(false);
 
 const logout = () => {
-  deleteCookie();
+  auth.signOut();
   window.location.reload();
   router.push({ path: "/" });
 };
@@ -45,7 +38,7 @@ const toggleBurger = () => {
       <span class="brand-your" style="color: #ffb703">Your</span>
       <span class="brand-moon" style="color: #fefae0">Moon</span>
     </a>
-    <h1>{{ authenticated.value }}</h1>
+
     <button
       class="navbar-toggler"
       @click="toggleBurger"

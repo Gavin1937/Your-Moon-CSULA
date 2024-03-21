@@ -44,6 +44,7 @@ upload = multer({
 		key: function (req, file, cb) {
 			logger.debug("Upload Query: ", req.query);
 			logger.info("File Information:\n", file);
+			// filename save in s3
 			const key = `image-${new Date().toISOString()}.${file.originalname}`;
 			if (key) {
 			  cb(null, key);

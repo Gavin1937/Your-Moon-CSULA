@@ -69,7 +69,13 @@ Assuming you are in the root directory of this repository
    3. this file will tell docker-compose which port to expose for the entire app
    4. you can use file `.env.template` as your starting point
 
-> Note that, if you want to run Redis server with a username and password, you can modify `docker-compose.yml` or `docker-compose-reverse-proxy.yml` file, so `your-moon-redis -> build -> dockerfile` is set to `Dockerfile_user`. And you also need to [configure a redis.conf file](./redis/README.md) with the username and password you want.
+* to run a Redis server with username and password, you can set optional environment variable in your `.env` file. Add following line to your `.env` file:
+
+```
+REDIS_CONFIG="/path/to/optional/redis.conf"
+```
+
+> Note that, we use this argument as the build argument for `redis/Dockerfile`, so relative path will be relative to `redis/` folder, you should use absolute path. [Checkout redis/README.md](./redis/README.md) for more detail
 
 
 ### Deploy Entire App with Docker Compose

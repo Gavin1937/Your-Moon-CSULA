@@ -1,7 +1,0 @@
-FROM redis
-
-COPY redis.conf /app/redis.conf
-
-EXPOSE 6379
-
-CMD ["redis-server", "/app/redis.conf"]

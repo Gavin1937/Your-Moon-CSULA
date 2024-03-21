@@ -26,11 +26,11 @@ AWS.config.update(aws_config);
 // Create a connection to yourmoon bucket
 const s3 = new AWS.S3();
 s3.listBuckets((err, data) => {
-	if (err) {aws_config
+	if (err) {
 		logger.error('AWS connection error:', err);
 	} else {
 		logger.info('AWS connection successful.');
-		logger.info(`\n${JSON.stringify(data,null,2)}`);
+		logger.debug(`\n${JSON.stringify(data,null,2)}`);
 	}
 });
 

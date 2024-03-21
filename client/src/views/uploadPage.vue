@@ -353,6 +353,7 @@ async function updateMetaData() {
       const temp_date = `${year}-${month}-${day}`;
       data.date = temp_date;
       data.time = timePart;
+      data.timeStamp = Date.parse(`${data.date} ${data.time}`);
     }
     if (tags.Make && tags.Model) {
       //As of now this only captures camera make and model
@@ -407,7 +408,11 @@ async function uploadCroppedImage() {
     //update lat and lon to nearest city
     updateCoordinates(data.nearestCity, data.countryCode);
     // make post request to upload image to database
-    let img_filename = `${data.imageHash}.${data.file.type.split("/")[1]}`;
+    if (!data.timeStamp || data.timeStamp.length <= 0) {
+      data.timeStamp = Date.parse(`${data.date} ${data.time}`);
+    }
+    let current_timestamp = String(Date.now());
+    let img_filename = `${data.imageHash}-${current_timestamp}.${data.file.type.split("/")[1]}`;
     let metadata_params = {
       instrument: {
         inst_type: "phone", // TODO: add additional drop-down menu for instrument type. ("phone", "camera", "phone+telescope", "camera+telescope")
@@ -424,7 +429,7 @@ async function uploadCroppedImage() {
         // TODO: derive image's original unix timestamp when taken from geolocation & datetime
         // https://www.npmjs.com/package/geo-tz
         // this should be handle by the server
-        img_timestamp: Math.floor(new Date().getTime() / 1000),
+        img_timestamp: data.timeStamp,
       },
       moon: {
         moon_detect_flag: 1,

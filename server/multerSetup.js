@@ -45,7 +45,8 @@ upload = multer({
 			logger.debug("Upload Query: ", req.query);
 			logger.info("File Information:\n", file);
 			// filename save in s3
-			const key = `image-${new Date().toISOString()}.${file.originalname}`;
+			// TODO: we should check md5 in file.originalname against its real md5, just in case file upload failed
+			const key = file.originalname;
 			if (key) {
 			  cb(null, key);
 			} else {

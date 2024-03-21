@@ -18,6 +18,7 @@ services:
       dockerfile: Dockerfile
       args:
         REDIS_CONFIG: ${REDIS_CONFIG}
+    image: your-moon-redis
     container_name: your-moon-redis
     restart: unless-stopped
   

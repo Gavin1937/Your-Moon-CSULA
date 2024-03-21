@@ -39,7 +39,7 @@ s3.listBuckets((err, data) => {
 upload = multer({
 	storage: multerS3({
 		s3: s3,
-		acl: 'public-read',
+		acl: 'private',
 		bucket: config.aws.bucket_name,
 		key: function (req, file, cb) {
 			logger.debug("Upload Query: ", req.query);

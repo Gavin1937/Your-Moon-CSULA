@@ -23,7 +23,7 @@ docker build -t your-moon-redis -f Dockerfile .
 docker run -d --name your-moon-redis -p 6379:6379 your-moon-redis
 ```
 
-3. To setup a Redis server with username and password protection, you can use the `Dockerfile_user` in current directory:
+1. To setup a Redis server with username and password protection, you can pass a build argument to `Dockerfile` file:
 
 * Create a `redis.conf` file from [redis.conf.template](./redis.conf.template) in current directory. This file will tell Redis server of your user information. There are two lines in the file:
   * The first line: `user default off` will turn off default user in Redis
@@ -32,8 +32,10 @@ docker run -d --name your-moon-redis -p 6379:6379 your-moon-redis
 * Build the redis image with:
 
 ```sh
-docker build -t your-moon-redis -f Dockerfile_user .
+docker build -t your-moon-redis -f Dockerfile --build-arg="REDIS_CONFIG=/path/to/optional/redis.conf" .
 ```
+
+> Note that, you need to supply build argument `REDIS_CONFIG` specifying the path to redis.conf file. Relative path is ok, but absolute path would be better.
 
 * Run docker container with:
 

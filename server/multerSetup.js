@@ -26,11 +26,11 @@ AWS.config.update(aws_config);
 // Create a connection to yourmoon bucket
 const s3 = new AWS.S3();
 s3.listBuckets((err, data) => {
-	if (err) {aws_config
+	if (err) {
 		logger.error('AWS connection error:', err);
 	} else {
 		logger.info('AWS connection successful.');
-		logger.info(`\n${JSON.stringify(data,null,2)}`);
+		logger.debug(`\n${JSON.stringify(data,null,2)}`);
 	}
 });
 
@@ -39,12 +39,14 @@ s3.listBuckets((err, data) => {
 upload = multer({
 	storage: multerS3({
 		s3: s3,
-		acl: 'public-read',
+		acl: 'private',
 		bucket: config.aws.bucket_name,
 		key: function (req, file, cb) {
 			logger.debug("Upload Query: ", req.query);
 			logger.info("File Information:\n", file);
-			const key = `image-${new Date().toISOString()}.${file.originalname}`;
+			// filename save in s3
+			// TODO: we should check md5 in file.originalname against its real md5, just in case file upload failed
+			const key = file.originalname;
 			if (key) {
 			  cb(null, key);
 			} else {

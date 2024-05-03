@@ -136,7 +136,7 @@ class DBManager {
                             insert_param = [
                                 result.insertId,
                                 image.img_name, image.img_type, image.img_uri,
-                                image.img_altitude, image.img_longitude, image.img_latitude, image.img_timestamp,
+                                image.img_altitude, image.img_longitude, image.img_latitude, Math.floor(image.img_timestamp/1000),
                                 moon.moon_detect_flag, moon.moon_exist_flag,
                                 moon.moon_loc_x, moon.moon_loc_y, moon.moon_loc_r
                             ];

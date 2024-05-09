@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const CryptoJS = require("crypto-js");
 
 
+// TODO: Rewrite this class, promisify it so we can get rid of `handler` functions and make it cleaner.
 class DBManager {
     
     constructor(db_config, aes_key, jwt_secret, table_config, logger) {

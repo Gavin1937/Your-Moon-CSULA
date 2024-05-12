@@ -13,4 +13,7 @@ export default defineConfig({
   },
   // setting the base path to be `http://host:port/`
   base: './',
+  build: {
+    target: "ES2022"
+  },
 });

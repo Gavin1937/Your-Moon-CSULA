@@ -232,6 +232,19 @@ app.post("/api/picMetadata", (req, res) => {
         });
       } else {
         logger.info("VERIFIED USER!");
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // TODO: Variable `req.body.image.img_timestamp` should be the
+        // TODO: timestamp when image was taken. Right now its set by client
+        // TODO: using current time `Date.now()`. We should determine this
+        // TODO: using user input geolocation & time string at the backend.
+        // TODO: Convert geolocation to timezone, and then use timezone
+        // TODO: and time string to get the correct unix timestamp when
+        // TODO: image was taken.
+        // TODO: geolocation to timezone package:
+        // TODO: https://www.npmjs.com/package/geo-tz
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         db.addImage(
           req.body.instrument,
           req.body.image,

@@ -1,10 +1,15 @@
 export { ImageHandler };
 
 import { instance } from './wasm_loader.js';
+import { get_cpp_exception } from './internal.js';
 
 
 /**
  * A simple class that handles image loading & reading between JS & C++
+ * 
+ * About color format:
+ *   - All the images load into this handler class will have color format BGRA for OpenCV under the hood
+ *   - When we export image into JavaScript via get_... or to_... function, image will have color format RGBA for ease of use
  */
 class ImageHandler {
   constructor() {
@@ -12,7 +17,6 @@ class ImageHandler {
     this.img_height = null;
     this.data_url = null;
     this.img_data_length = null;
-    this.buffer_ptr = null;
     this.image_ptr = null;
   }
   
@@ -32,14 +36,13 @@ class ImageHandler {
           self.img_width = data_list[0];
           self.img_height = data_list[1];
           self.img_data_length = data_list[2];
-          self.buffer_ptr = data_list[3];
-          self.image_ptr = data_list[4];
+          self.image_ptr = data_list[3];
           
           await instance._mrwasm_destroy_ImageHandlerData(ptr);
           
           resolve(true);
         } catch (error) {
-          reject(error);
+          reject(await get_cpp_exception(error));
         }
       });
     });
@@ -79,12 +82,12 @@ class ImageHandler {
             const canvas_image = ctx.getImageData(0, 0, self.img_width, self.img_height);
             self.img_data_length = canvas_image.data.length;
             
-            self.buffer_ptr = await instance._mrwasm_create_image_buffer(self.img_data_length);
-            await instance.HEAP8.set(canvas_image.data, self.buffer_ptr);
+            let buffer_ptr = await instance._mrwasm_create_image_buffer(self.img_data_length);
+            await instance.HEAP8.set(canvas_image.data, buffer_ptr);
             
-            self.image_ptr = await instance._mrwasm_create_image_ptr(self.buffer_ptr, self.img_data_length, self.img_width, self.img_height);
+            self.image_ptr = await instance._mrwasm_create_image_ptr(buffer_ptr, self.img_data_length, self.img_width, self.img_height);
           } catch (error) {
-            reject(error);
+            reject(await get_cpp_exception(error));
           }
           
           resolve(true);
@@ -149,26 +152,25 @@ class ImageHandler {
             if (self.data_url) {
               await URL.revokeObjectURL(self.data_url);
             }
-            await instance._mrwasm_destroy_image(self.buffer_ptr, self.image_ptr);
+            await instance._mrwasm_destroy_image(self.image_ptr);
           }
           
           self.img_width = null;
           self.img_height = null;
           self.data_url = null;
           self.img_data_length = null;
-          self.buffer_ptr = null;
           self.image_ptr = null;
           
           resolve(true);
         } catch(error) {
-          reject(error);
+          reject(await get_cpp_exception(error));
         }
       });
     });
   }
   
   /**
-   * Read image pixel data from C++ to JS
+   * Get Uint8Array of pixel data
    * 
    * @returns {Promise<Uint8Array>} Uint8Array
    */
@@ -177,20 +179,25 @@ class ImageHandler {
     return new Promise((resolve, reject) => {
       instance.ready.then(async function() {
         try {
-          resolve(new Uint8Array(
+          let ptr = await instance._mrwasm_get_rgba_image_ptr(self.image_ptr);
+          let buff = new Uint8Array(
             instance.HEAP8.buffer,
-            self.buffer_ptr,
+            ptr,
             self.img_data_length
-          ));
+          );
+          // return a deep copy of data
+          let ret = new Uint8Array(buff);
+          await instance._mrwasm_destroy_image_buffer(ptr);
+          resolve(ret);
         } catch (error) {
-          reject(error);
+          reject(await get_cpp_exception(error));
         }
       });
     });
   }
   
   /**
-   * Read image pixel data from C++ to JS
+   * Get Uint8ClampedArray of pixel data
    * 
    * @returns {Promise<Uint8ClampedArray>} Uint8ClampedArray
    */
@@ -199,13 +206,18 @@ class ImageHandler {
     return new Promise((resolve, reject) => {
       instance.ready.then(async function() {
         try {
-          resolve(new Uint8ClampedArray(
+          let ptr = await instance._mrwasm_get_rgba_image_ptr(self.image_ptr);
+          let buff = new Uint8ClampedArray(
             instance.HEAP8.buffer,
-            self.buffer_ptr,
+            ptr,
             self.img_data_length
-          ));
+          );
+          // return a deep copy of data
+          let ret = new Uint8ClampedArray(buff);
+          await instance._mrwasm_destroy_image_buffer(ptr);
+          resolve(ret);
         } catch (error) {
-          reject(error);
+          reject(await get_cpp_exception(error));
         }
       });
     });
@@ -228,7 +240,34 @@ class ImageHandler {
             self.img_height
           ));
         } catch (error) {
-          reject(error);
+          reject(await get_cpp_exception(error));
+        }
+      });
+    });
+  }
+  
+  /**
+   * Convert ImageHandler to Blob object
+   * 
+   * @returns {Promise<Blob>} Blob object
+   */
+  async to_Blob() {
+    let self = this;
+    return new Promise((resolve, reject) => {
+      instance.ready.then(async function() {
+        try {
+          let canvas = document.createElement('Canvas');
+          canvas.width = self.img_width;
+          canvas.height = self.img_height;
+          let ctx = canvas.getContext('2d', {
+            'colorSpace': 'srgb'
+          });
+          ctx.putImageData(await self.to_ImageData(), 0, 0);
+          canvas.toBlob((blob_data) => {
+            resolve(blob_data);
+          })
+        } catch (error) {
+          reject(await get_cpp_exception(error));
         }
       });
     });
@@ -244,7 +283,6 @@ class ImageHandler {
       this.img_width &&
       this.img_height &&
       this.img_data_length &&
-      this.buffer_ptr &&
       this.image_ptr
     );
   }

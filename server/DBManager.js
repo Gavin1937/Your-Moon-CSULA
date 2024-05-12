@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const CryptoJS = require("crypto-js");
 
 
+// TODO: Rewrite this class, promisify it so we can get rid of `handler` functions and make it cleaner.
 class DBManager {
     
     constructor(db_config, aes_key, jwt_secret, table_config, logger) {
@@ -95,6 +96,7 @@ class DBManager {
                         this.logger.debug(`No error while insert ignore into Instrument table.`);
                         let insert_img = null;
                         let insert_param = [];
+                        let img_time = Math.floor(image.img_timestamp/1000);
                         // trigger ignore
                         if (result.affectedRows == 0 && result.insertId == 0) {
                             insert_img = `
@@ -118,7 +120,7 @@ class DBManager {
                             insert_param = [
                                 instrument.inst_type, instrument.inst_make, instrument.inst_model,
                                 image.img_name, image.img_type, image.img_uri,
-                                image.img_altitude, image.img_longitude, image.img_latitude, image.img_timestamp,
+                                image.img_altitude, image.img_longitude, image.img_latitude, img_time,
                                 moon.moon_detect_flag, moon.moon_exist_flag,
                                 moon.moon_loc_x, moon.moon_loc_y, moon.moon_loc_r
                             ];
@@ -136,7 +138,7 @@ class DBManager {
                             insert_param = [
                                 result.insertId,
                                 image.img_name, image.img_type, image.img_uri,
-                                image.img_altitude, image.img_longitude, image.img_latitude, image.img_timestamp,
+                                image.img_altitude, image.img_longitude, image.img_latitude, img_time,
                                 moon.moon_detect_flag, moon.moon_exist_flag,
                                 moon.moon_loc_x, moon.moon_loc_y, moon.moon_loc_r
                             ];

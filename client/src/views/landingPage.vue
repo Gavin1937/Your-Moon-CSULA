@@ -115,21 +115,9 @@ function toggleExpand() {
                   interaction for both you and our system. Thank you.
                 </p>
 
+                <!-- 
                 <div v-if="isExpanded">
                   <p>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                    Integer nec odio. Praesent libero. Sed cursus ante dapibus
-                    diam.
-                  </p>
-                  <p>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                    Integer nec odio. Praesent libero. Sed cursus ante dapibus
-                    diam.
-                  </p>
-                  <p>
-                    Lorem ipsum dorlor sit amet, consectetur adipiscing elit.
-                    Integer nec odio. Praesent libero. Sed cursus ante dapibus
-                    diam.
                   </p>
                 </div>
                 <button
@@ -139,6 +127,8 @@ function toggleExpand() {
                 >
                   {{ isExpanded ? "Read Less" : "Read More" }}
                 </button>
+                 -->
+                
               </div>
             </div>
           </div>

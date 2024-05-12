@@ -5,6 +5,7 @@ export {
 };
 
 import { instance } from './wasm_loader.js';
+import { get_cpp_exception } from './internal.js';
 
 
 /**
@@ -28,17 +29,21 @@ class Circle {
     return new Promise((resolve, reject) => {
       instance.ready.then(async function() {
         try {
-          const data_list = new Uint32Array(instance.HEAP32.buffer, ptr, 3)
+          const data_list = new Int32Array(instance.HEAP32.buffer, ptr, 3)
           self.x = data_list[0];
           self.y = data_list[1];
           self.radius = data_list[2];
           
           resolve(true);
         } catch (error) {
-          reject(error);
+          reject(await get_cpp_exception(error));
         }
       });
     });
+  }
+  
+  toString() {
+    return `(x=${this.x}, y=${this.y}, radius=${this.radius})`;
   }
 };
 
@@ -63,17 +68,21 @@ class Square {
     return new Promise((resolve, reject) => {
       instance.ready.then(async function() {
         try {
-          const data_list = new Uint32Array(instance.HEAP32.buffer, ptr, 3);
+          const data_list = new Int32Array(instance.HEAP32.buffer, ptr, 3);
           self.x = data_list[0];
           self.y = data_list[1];
           self.width = data_list[2];
           
           resolve(true);
         } catch (error) {
-          reject(error);
+          reject(await get_cpp_exception(error));
         }
       });
     });
+  }
+  
+  toString() {
+    return `(x=${this.x}, y=${this.y}, width=${this.width})`;
   }
 };
 
@@ -99,7 +108,7 @@ class Rectangle {
     return new Promise((resolve, reject) => {
       instance.ready.then(async function() {
         try {
-          const data_list = new Uint32Array(instance.HEAP32.buffer, ptr, 4);
+          const data_list = new Int32Array(instance.HEAP32.buffer, ptr, 4);
           self.top_left_x = data_list[0];
           self.top_left_y = data_list[1];
           self.bottom_right_x = data_list[2];
@@ -107,10 +116,14 @@ class Rectangle {
           
           resolve(true);
         } catch (error) {
-          reject(error);
+          reject(await get_cpp_exception(error));
         }
       });
     });
+  }
+  
+  toString() {
+    return `(top_left_x=${this.top_left_x}, top_left_y=${this.top_left_y}, bottom_right_x=${this.bottom_right_x}, bottom_right_y=${this.bottom_right_y})`;
   }
 };
 
@@ -131,8 +144,8 @@ async function circle_to_square(circle) {
         let ret = new Square();
         await ret.load_from_ptr(result_ptr);
         resolve(ret);
-      } catch(err) {
-        reject(err);
+      } catch(error) {
+        reject(await get_cpp_exception(error));
       }
     });
   });
@@ -155,8 +168,8 @@ async function circle_to_rectangle(circle) {
         let ret = new Rectangle();
         await ret.load_from_ptr(result_ptr);
         resolve(ret);
-      } catch(err) {
-        reject(err);
+      } catch(error) {
+        reject(await get_cpp_exception(error));
       }
     });
   });

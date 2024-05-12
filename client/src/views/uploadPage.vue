@@ -378,8 +378,8 @@ async function updateMetaData() {
 //                    return: { "type": "rectangle", "x1": int, "y1": int, "x2": int, "y2": int }
 //   * returns from MoonDetection() will be receive & process by this.onMoonPositionUpdatse()
 async function RunDetectMoon(_fileObject, _type = "square") {
+  let image_handler = new ImageHandler();
   try {
-    let image_handler = new ImageHandler();
     await image_handler.load_from_fileobject(_fileObject);
     let circle = await detect_moon(image_handler);
     
@@ -400,6 +400,8 @@ async function RunDetectMoon(_fileObject, _type = "square") {
 
   } catch (err) {
     data.message = err;
+  } finally {
+    await image_handler.destroy_image();
   }
 }
 // function that gets the cropped image and sends it to server-side

@@ -32,25 +32,21 @@ const router = createRouter({
 router.beforeEach(async (to, from) => {
   const auth = useAuthStore();
   try {
-    // const token = Cookies.get("token");
-    //if token exists by default we assume it's valid
-    //true if token is non empty string, false if token is undefined
-    // let authenticated = token ? true : false;
-    // console.log(authenticated);
-    // const currTime = Date.now();
-    // const timeSinceSignIn = currTime - auth.signInTime;
-    //working on below
-    // watch(auth.token, )
-    //We only check if cookie is still valid after 1 hour passed since user logged in
-    //(1 hour is cookie life of guest user). We do this to limit verifyUser endpoint
-    //which checks if cookie is still valid
-    //3,600,000 ms in an hour
-    // if (timeSinceSignIn > 3_600_000) authenticated = await checkCookie();
+    //if page requires auth and token doesn't exist or
+    //auth.signInTime is 0 (user didn't login, probably just manually added token) kick to homepage,
+    //go to authUtils file to see implementation of checkCookie
     if (to.meta.requiresAuth) {
       const token = Cookies.get("token");
-      if (!token) return { path: "/" };
-      else {
-        if (!checkCookie(token, auth.signInTime)) return { path: "/" };
+      if (!token || auth.signInTime == 0) {
+        auth.signOut(); //clears authStore in session storage and token in cookie
+        return { path: "/" };
+      } else {
+        const isValid = await checkCookie(token, auth.signInTime);
+        if (!isValid) {
+          auth.signOut();
+          return { path: "/" };
+        } else if (isValid == "update time")
+          auth.signInTime = Math.floor(Date.now() / 1000);
       }
     }
   } catch (error) {

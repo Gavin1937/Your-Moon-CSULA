@@ -4,7 +4,7 @@ import { ref } from "vue";
 export const useAuthStore = defineStore(
   "AuthStore",
   () => {
-    const signInTime = ref(null);
+    const signInTime = ref(0);
 
     // //authPage will set token
     // const token = ref("");

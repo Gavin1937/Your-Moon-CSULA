@@ -4,12 +4,16 @@ import { ref } from "vue";
 export const useAuthStore = defineStore(
   "AuthStore",
   () => {
-    const signInTime = ref(0);
+    const signInTime = ref(null);
 
-    function getCurrTime() {
-      //saves time since January 1, 1970, UTC in milliseconds
-      signInTime.value = Date.now();
-    }
+    // //authPage will set token
+    // const token = ref("");
+
+    //authPage calls this function when user signs in to set signInTime
+    // function getCurrTime() {
+    //   //saves time since January 1, 1970, UTC in milliseconds
+    //   signInTime.value = Date.now();
+    // }
 
     function signOut() {
       document.cookie =
@@ -17,7 +21,7 @@ export const useAuthStore = defineStore(
       sessionStorage.removeItem("AuthStore");
     }
 
-    return { signInTime, getCurrTime, signOut };
+    return { signInTime, signOut };
   },
   {
     persist: {

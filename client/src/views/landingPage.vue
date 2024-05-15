@@ -114,21 +114,6 @@ function toggleExpand() {
                   using your preferred email address. This ensures a secure
                   interaction for both you and our system. Thank you.
                 </p>
-
-                <!-- 
-                <div v-if="isExpanded">
-                  <p>
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  class="btn btn-secondary mt-1btn-md btn-block btn-warning"
-                  @click="toggleExpand"
-                >
-                  {{ isExpanded ? "Read Less" : "Read More" }}
-                </button>
-                 -->
-                
               </div>
             </div>
           </div>

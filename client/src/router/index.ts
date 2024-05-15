@@ -45,6 +45,8 @@ router.beforeEach(async (to, from) => {
         if (!isValid) {
           auth.signOut();
           return { path: "/" };
+          //if cookie has been verified and over 1 hour has passed, set auth.signInTime to current time/time since
+          //cookie verified
         } else if (isValid == "update time")
           auth.signInTime = Math.floor(Date.now() / 1000);
       }

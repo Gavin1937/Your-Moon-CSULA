@@ -6,6 +6,7 @@
 #                                                    #
 # ################################################## #
 
+import math
 import traceback
 from datetime import datetime, timedelta
 from Crypto.Cipher import AES
@@ -44,15 +45,19 @@ def main():
     user_id = 'sess-'+str(uuid.uuid4())
     jwt_secret = b64decode(input('1) What is the "jwt_secret" in the backend config:\n'))
     
+    now = math.floor(datetime.now().timestamp())
+    exp = math.floor((datetime.now()+timedelta(hours=1)).timestamp())
     output_jwt = jwt.encode(
         {
             "user_id":user_id,
-            "exp": (datetime.now()+timedelta(hours=1)).timestamp(),
+            "user_type": "guest",
+            "iat": now,
+            "exp": exp,
         },
         jwt_secret,
         algorithm="HS256"
     )
-    authstore_str = json.dumps({'signInTime':int(time()*1000)})
+    authstore_str = json.dumps({'signInTime':now})
     output_js = (
         f'document.cookie = "token={output_jwt}";\n'
         f'sessionStorage.setItem(\'AuthStore\', \'{authstore_str}\');'

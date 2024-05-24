@@ -6,6 +6,7 @@
 #                                                    #
 # ################################################## #
 
+import math
 import traceback
 from datetime import datetime, timedelta
 from Crypto.Cipher import AES
@@ -54,15 +55,20 @@ def main():
     user_id = int(input('5) What is the user_id you get? '))
     
     
+    now = math.floor(datetime.now().timestamp())
+    exp = math.floor((datetime.now()+timedelta(days=2)).timestamp())
     output_jwt = jwt.encode(
         {
-            "user_id":user_id, "hashed_email":user_email_md5,
-            "exp": (datetime.now()+timedelta(days=2)).timestamp(),
+            "user_id":user_id,
+            "hashed_email":user_email_md5,
+            "user_type": "regular",
+            "iat": now,
+            "exp": exp,
         },
         jwt_secret,
         algorithm="HS256"
     )
-    authstore_str = json.dumps({'signInTime':int(time()*1000)})
+    authstore_str = json.dumps({'signInTime':now})
     output_js = (
         f'document.cookie = "token={output_jwt}";\n'
         f'sessionStorage.setItem(\'AuthStore\', \'{authstore_str}\');'
